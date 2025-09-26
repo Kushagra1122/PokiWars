@@ -1,11 +1,16 @@
 import React from 'react'
 import PixelBlast from '@/components/PixelBlast'
 import { Button } from '@/components/ui/8bit/button' // Assuming this is your custom 8bit button
-
+import connectWallet from '@/lib/connectWallet'
 function LandingPage() {
 
     const handleClick = () => {
         console.log("jidhwihxo")
+        var {provider, connectedAccount} = connectWallet();
+        if(!provider && !connectedAccount){
+            // Navigate to dashboard when wallet is not connected
+            window.location.href = '/dashboard';
+        }
         // handle wallet connect
     }
 
@@ -14,8 +19,6 @@ function LandingPage() {
     return (
 
         <div className='bg-black h-screen'>
-
-
             <style jsx>{`
         @keyframes neon-glow {
             0% {
@@ -66,7 +69,7 @@ function LandingPage() {
                                 className='text-black w-[200px] h-[60px] glow-button relative  ' // Apply the glow-button class here
                                 variant="outline"
                             >
-                                <span className='text-2xl font-extrabold font-pixelify'>GET STARTED</span>
+                                <span className='text-2xl font-extrabold font-pixelify'>Connect Wallet</span>
                             </Button>
                         </div>
                     </div>
