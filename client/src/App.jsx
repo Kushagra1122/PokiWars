@@ -8,12 +8,12 @@ import EightBitProfilePage from "./pages/Profile";
 
 function App() {
   return (
-    <>
-      {/* <Dashboard/> */}
-      <EightBitProfilePage/>
-      {/* <LandingPage/> */}
-      {/* <Profile/> */}
-    </>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/profile" element={<EightBitProfilePage />} />
+    </Routes>
   );
 }
 
