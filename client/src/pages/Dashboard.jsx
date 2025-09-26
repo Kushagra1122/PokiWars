@@ -1,10 +1,36 @@
 import { Bell, User, Users } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useState, useEffect  } from 'react'
+import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
-    const [hoveredNav, setHoveredNav] = useState(null);
+    const navigate = useNavigate();
 
-    const [main, setMain] = useState('./venu.png')
+    const [hoveredNav, setHoveredNav] = useState(null);
+    const [main, setMain] = useState('./venu.png');
+    const [walletAddress, setWalletAddress] = useState(null);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+    // Check MetaMask connection on mount
+    useEffect(() => {
+        async function checkWalletConnection() {
+            if (window.ethereum && window.ethereum.isMetaMask) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length === 0) {
+                        navigate('/'); // Not connected, redirect
+                    } else {
+                        setWalletAddress(accounts[0]);
+                    }
+                } catch (err) {
+                    console.error('Error checking wallet connection:', err);
+                    navigate('/');
+                }
+            } else {
+                navigate('/'); // MetaMask not installed
+            }
+        }
+        checkWalletConnection();
+    }, [navigate]);
 
     const handleMarketplaceClick = () => {
         console.log('Navigate to Marketplace');
@@ -21,9 +47,13 @@ function Dashboard() {
         // Add your swap logic here
     };
 
+    // Show/hide profile dropdown on profile icon click
     const handleProfileClick = () => {
-        console.log('Open Profile');
-        // Add your profile logic here
+        setShowProfileDropdown(prev => !prev);
+    };
+    const handleMyProfileClick = () => {
+        navigate('/profile');
+        setShowProfileDropdown(false);
     };
 
     const handleNotificationsClick = () => {
@@ -118,6 +148,17 @@ function Dashboard() {
                     <div className={`tooltip ${hoveredNav === 'profile' ? 'show' : ''}`} style={{ top: '70px', left: '50%', transform: 'translateX(-50%)' }}>
                         Profile
                     </div>
+                    {showProfileDropdown && (
+                        <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
+                            <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
+                            <button
+                                onClick={handleMyProfileClick}
+                                className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded"
+                            >
+                                My Profile
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div

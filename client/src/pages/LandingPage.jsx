@@ -1,23 +1,45 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import PixelBlast from '@/components/PixelBlast'
 import { Button } from '@/components/ui/8bit/button' // Assuming this is your custom 8bit button
 import connectWallet from '@/lib/connectWallet'
+import { useNavigate } from 'react-router-dom';
 function LandingPage() {
-
+    const navigate = useNavigate();
+    const [btnText, setBtnText] = useState(null);
     const handleClick = () => {
         console.log("jidhwihxo")
-        var {provider, connectedAccount} = connectWallet();
-        if(!provider && !connectedAccount){
+        var { provider, connectedAccount } = connectWallet();
+        if (!provider && !connectedAccount) {
             // Navigate to dashboard when wallet is not connected
             window.location.href = '/dashboard';
         }
         // handle wallet connect
     }
 
-
+    // Check MetaMask connection on mount
+    useEffect(() => {
+        async function checkWalletConnection() {
+            if (window.ethereum && window.ethereum.isMetaMask) {
+                try {
+                    const accounts = await window.ethereum.requesapt({ method: 'eth_accounts' });
+                    if (accounts.length === 0) {
+                        setBtnText('Connect Wallet');
+                    } else {
+                        setBtnText('Go to Dashboard');
+                        setWalletAddress(accounts[0]);
+                    }
+                } catch (err) {
+                    console.error('Error checking wallet connection:', err);
+                    navigate('/');
+                }
+            } else {
+                navigate('/'); // MetaMask not installed
+            }
+        }
+        checkWalletConnection();
+    }, [navigate]);
 
     return (
-
         <div className='bg-black h-screen'>
             <style jsx>{`
         @keyframes neon-glow {
@@ -69,7 +91,9 @@ function LandingPage() {
                                 className='text-black w-[200px] h-[60px] glow-button relative  ' // Apply the glow-button class here
                                 variant="outline"
                             >
-                                <span className='text-2xl font-extrabold font-pixelify'>Connect Wallet</span>
+                                <span className='text-2xl font-extrabold font-pixelify'>
+                                    {btnText}
+                                </span>
                             </Button>
                         </div>
                     </div>
