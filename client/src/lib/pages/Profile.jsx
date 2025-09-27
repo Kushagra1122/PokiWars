@@ -39,68 +39,74 @@ const Profile = () => {
     );
   };
 
+  const HandleLogout = () => {
+    // Logout logic here
+  };
+
   return (
-    <div className="h-screen text-white bg-black">
-      <div className="">
-        {/* Header Section */}
-        <div className="flex gap-4 mb-6 justify-between items-center ">
-          <div className="mt-3 text-center">
-            <div className="font-pixelify text-transparent bg-gray-400 bg-clip-text font-bold text-4xl mb-2 tracking-wider">
-              POKIWARS
-            </div>
+    <div className="h-screen text-white bg-black flex flex-col">
+      {/* Header Section */}
+      <div className="flex gap-4 mb-6 justify-between items-center p-4">
+        <div className="text-center">
+          <div className="font-pixelify text-transparent bg-gray-400 bg-clip-text font-bold text-4xl mb-2 tracking-wider">
+            POKIWARS
           </div>
-          <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-            username:<div>{username}</div>
-          </div>
-          <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-            ttl friends: {noOfFriends}
-          </div>
-          <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-            amount: {amount}
+        </div>
+        <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
+          username:<div>{username}</div>
+        </div>
+        <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
+          ttl friends: {noOfFriends}
+        </div>
+        <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
+          amount: {amount}
+        </div>
+      </div>
+
+      {/* Main Content Area - Two Column Layout - Takes remaining height */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 px-4 pb-4">
+
+        {/* Left Panel - Stats */}
+        <div className="h-130 w-full bg-white/10 border-4 border-white-500 p-4 shadow-[0_0_15px_#ffffff] flex flex-col">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <StatCard label="Total Battles" value={totalBot} color="green" />
+            <StatCard label="Kills" value={kills} color="red" />
+            <StatCard label="Wins" value={won} color="blue" />
+            <StatCard label="K/D" value={kd} color="yellow" />
           </div>
 
+          {/* Spacer to push button to bottom */}
+          <div className="flex-1"></div>
+
+          {/* Action Button - At bottom of left panel */}
+          <div className="px-2">
+            <Button
+              className="text-lg bg-white/20 w-full"
+              onClick={() => HandleLogout()}
+            >
+              Log Out
+            </Button>
+          </div>
         </div>
 
-        {/* Main Content Area - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Left Panel - Stats */}
-          <div className="bg-white/10 border-2 border-white-500 p-4 shadow-[0_0_15px_#ffffff] ">
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <StatCard label="Total Battles" value={totalBot} color="green" />
-              <StatCard label="Kills" value={kills} color="red" />
-              <StatCard label="Wins" value={won} color="blue" />
-              <StatCard label="K/D" value={kd} color="yellow" />
-            </div>
-
-            {/* Action Button */}
-
-            <div className="mt-4  px-2 absolute bottom-18">
-              <Button
-                className="text-lg bg-white/20"
-                onClick={() => HandleLogout()}
-              >
-                Log Out
-              </Button>
-            </div>
-
-          </div>
-
-          {/* Right Panel -  */}
-          <div className="border-5 bg-white/10 p-4 shadow-[0_0_15px_#8b5cf6]">
-            <div className="flex justify-center gap-5 items-center gap flex-wrap">
+        {/* Right Panel - Pokemon Cards with Scroll */}
+        <div className="h-130 w-full border-4 bg-white/10 p-4 shadow-[0_0_15px_#8b5cf6] flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-3 gap-2">
               {samplePokemon.map((pokemon, index) => (
-                <PokemonCard
-                  imageSrc={pokemon.img}
-                  key={index}
-                  name={pokemon.name}
-                  type={pokemon.type}
-                  attack={pokemon.attack}
-                  range={pokemon.range}
-                  exp={pokemon.exp}
-                  level={pokemon.level}
-                // onClick={()=>pokemonSelect(pokemon)}
-                />
+                <div className='scale-95'>
+                  <PokemonCard
+                    imageSrc={pokemon.img}
+                    key={index}
+                    name={pokemon.name}
+                    type={pokemon.type}
+                    attack={pokemon.attack}
+                    range={pokemon.range}
+                    exp={pokemon.exp}
+                    level={pokemon.level}
+                  // onClick={()=>pokemonSelect(pokemon)}
+                  />
+                </div>
               ))}
             </div>
           </div>
