@@ -9,19 +9,16 @@ import StarterAnimation from "./lib/pages/FirstPokemonSelect";
 function App() {
   return (
     <>
-        
-        {/* <Profile/> */}
-        {/* <LandingPage/> */}
-        {/* <Dashboard/> */}
-        <StarterAnimation/>
 
 
-        {/* <Routes>  
+        <Routes>  
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
-      </Routes> */}
+        <Route path="/first" element={<StarterAnimation />} />
+        
+      </Routes>
     </>
   );
 }
