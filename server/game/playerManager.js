@@ -24,6 +24,9 @@ function addPlayer(socketId, playerInfo) {
         char: selectedChar,
         health: GAME_CONFIG.MAX_HEALTH,
         score: 0,
+        kills: 0,
+        deaths: 0,
+        kdRatio: 0,
         lastUpdate: Date.now(),
         screenWidth,
         screenHeight
@@ -62,11 +65,78 @@ function getAllPlayers() {
     return players;
 }
 
+function updatePlayerKill(killerId, victimId) {
+    if (players[killerId] && players[victimId]) {
+        // Increment killer's kills
+        players[killerId].kills += 1;
+        players[killerId].score += 10; // Bonus points for kill
+        
+        // Increment victim's deaths
+        players[victimId].deaths += 1;
+        
+        // Update K/D ratios
+        updateKDRatio(killerId);
+        updateKDRatio(victimId);
+        
+        console.log(`💀 ${players[killerId].char} killed ${players[victimId].char} (K/D: ${players[killerId].kills}/${players[killerId].deaths})`);
+        
+        return {
+            killer: players[killerId],
+            victim: players[victimId]
+        };
+    }
+    return null;
+}
+
+function updateKDRatio(playerId) {
+    if (players[playerId]) {
+        const player = players[playerId];
+        if (player.deaths > 0) {
+            player.kdRatio = player.kills / player.deaths;
+        } else {
+            player.kdRatio = player.kills; // If no deaths, K/D = kills
+        }
+    }
+}
+
+function getLeaderboard() {
+    const playerList = Object.values(players).map(player => ({
+        id: player.id,
+        name: player.name || player.char,
+        char: player.char,
+        kills: player.kills,
+        deaths: player.deaths,
+        kdRatio: player.kdRatio,
+        score: player.score
+    }));
+    
+    // Sort by kills descending, then by K/D ratio
+    return playerList.sort((a, b) => {
+        if (b.kills !== a.kills) {
+            return b.kills - a.kills;
+        }
+        return b.kdRatio - a.kdRatio;
+    });
+}
+
+function resetPlayerStats() {
+    Object.values(players).forEach(player => {
+        player.kills = 0;
+        player.deaths = 0;
+        player.kdRatio = 0;
+        player.score = 0;
+    });
+}
+
 module.exports = { 
     players, 
     addPlayer, 
     removePlayer, 
     updatePlayerPosition,
     getPlayer,
-    getAllPlayers
+    getAllPlayers,
+    updatePlayerKill,
+    updateKDRatio,
+    getLeaderboard,
+    resetPlayerStats
 };

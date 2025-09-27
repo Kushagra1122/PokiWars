@@ -1,4 +1,4 @@
-const { addPlayer, removePlayer, players } = require("../game/playerManager");
+const { addPlayer, removePlayer, players, getLeaderboard } = require("../game/playerManager");
 const { gameState } = require("../game/gameState");
 const { handlePlayerMovement } = require("./movementHandler");
 const { handlePlayerHit, handleDisconnect } = require("./eventHandler");
@@ -91,6 +91,12 @@ function handleConnection(io, socket) {
             } else {
                 console.log(`❌ Failed to respawn player - game inactive or player not found for socket ${socket.id}`);
             }
+        });
+
+        // Handle leaderboard requests
+        socket.on("requestLeaderboard", () => {
+            const leaderboard = getLeaderboard();
+            socket.emit("leaderboardUpdate", { players: leaderboard });
         });
 
         socket.on("disconnect", () => {

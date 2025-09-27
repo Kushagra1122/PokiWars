@@ -1,4 +1,4 @@
-const { players } = require("../game/playerManager");
+const { players, updatePlayerKill, getLeaderboard } = require("../game/playerManager");
 const { gameState } = require("../game/gameState");
 const { GAME_CONFIG } = require("../config/gameConfig");
 const { handlePlayerDeath, handleGameWin } = require("../game/gameLogic");
@@ -39,6 +39,15 @@ function handlePlayerHit(socket, data) {
         });
 
         if (target.health <= 0) {
+            // Update kill/death stats
+            const killData = updatePlayerKill(socket.id, data.id);
+            
+            // Broadcast leaderboard update
+            if (global.gameIO) {
+                const leaderboard = getLeaderboard();
+                global.gameIO.emit("leaderboardUpdate", { players: leaderboard });
+            }
+            
             handlePlayerDeath(data.id, socket.id);
         }
     }

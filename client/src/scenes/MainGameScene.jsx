@@ -6,6 +6,9 @@ import Player from "../entities/Player";
 import GameUI from "../ui/GameUI";
 import GameOverlay from "../ui/GameOverlay";
 import HealthBar from "../ui/HealthBar";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import InGameLeaderboard from "../components/InGameLeaderboard";
 
 import tilesImg from "../assets/maps/snow-tileset (1).png";
 import mapJSON from "../assets/maps/snowMap.json";
@@ -113,8 +116,32 @@ export default class MainGameScene extends Phaser.Scene {
     this.inputHandler = new InputHandler(this);
     this.effects = new Effects(this);
 
+    // Initialize leaderboard
+    this.initializeLeaderboard();
+
     // Connect to server
     this.socketManager.connectForGame(selectedChar);
+  }
+
+  initializeLeaderboard() {
+    // Create a container for the React leaderboard component
+    const leaderboardContainer = document.createElement('div');
+    leaderboardContainer.id = 'leaderboard-container';
+    leaderboardContainer.style.position = 'fixed';
+    leaderboardContainer.style.top = '0';
+    leaderboardContainer.style.left = '0';
+    leaderboardContainer.style.width = '100%';
+    leaderboardContainer.style.height = '100%';
+    leaderboardContainer.style.pointerEvents = 'none';
+    leaderboardContainer.style.zIndex = '1000';
+    
+    document.body.appendChild(leaderboardContainer);
+    
+    // Create React root and render the leaderboard
+    this.leaderboardRoot = createRoot(leaderboardContainer);
+    this.leaderboardRoot.render(React.createElement(InGameLeaderboard, { 
+      isVisible: true 
+    }));
   }
 
   createAnimations(selectedChar) {
@@ -572,6 +599,17 @@ export default class MainGameScene extends Phaser.Scene {
     // Clean up bullets
     if (this.bullets) {
       this.bullets.clear(true, true);
+    }
+    
+    // Clean up leaderboard
+    if (this.leaderboardRoot) {
+      this.leaderboardRoot.unmount();
+    }
+    
+    // Remove leaderboard container
+    const leaderboardContainer = document.getElementById('leaderboard-container');
+    if (leaderboardContainer) {
+      leaderboardContainer.remove();
     }
     
     // Clean up network manager

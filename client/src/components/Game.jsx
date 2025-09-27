@@ -3,11 +3,14 @@ import { useLocation } from "react-router-dom";
 import Phaser from "phaser";
 import SelectScene from "../scenes/SelectScene";
 import MainGameScene from "../scenes/MainGameScene";
+import EndGameModal from "./EndGameModal";
 
 export default function Game() {
   const gameRef = useRef(null);
   const [activeScene, setActiveScene] = useState(null);
   const [error, setError] = useState(null);
+  const [showEndGameModal, setShowEndGameModal] = useState(false);
+  const [gameEndData, setGameEndData] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -148,15 +151,24 @@ export default function Game() {
   }
 
   return (
-    <div
-      className={`relative w-screen h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 overflow-hidden game-ui ${
-        activeScene === "MainGameScene" ? "p-24" : ""
-      }`}
-    >
+    <>
       <div
-        id="game-container"
-        className="w-full h-full flex items-center justify-center rounded-lg shadow-2xl"
+        className={`relative w-screen h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 overflow-hidden game-ui ${
+          activeScene === "MainGameScene" ? "p-24" : ""
+        }`}
+      >
+        <div
+          id="game-container"
+          className="w-full h-full flex items-center justify-center rounded-lg shadow-2xl"
+        />
+      </div>
+      
+      {/* End Game Modal */}
+      <EndGameModal
+        isVisible={showEndGameModal}
+        onClose={() => setShowEndGameModal(false)}
+        gameData={gameEndData}
       />
-    </div>
+    </>
   );
 }
