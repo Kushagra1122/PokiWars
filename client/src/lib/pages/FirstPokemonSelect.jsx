@@ -127,8 +127,8 @@ export default function StarterAnimation() {
 
     return () => {
       if (window.ethereum) {
-        window.ethereum.removeListener("accountsChanged", () => {});
-        window.ethereum.removeListener('chainChanged', () => {});
+        window.ethereum.removeListener("accountsChanged", () => { });
+        window.ethereum.removeListener('chainChanged', () => { });
       }
     };
   }, []);
@@ -445,13 +445,12 @@ export default function StarterAnimation() {
       {/* Status message */}
       {status && (
         <div
-          className={`mb-4 p-3 rounded text-center ${
-            status.includes("✅") || status.includes("🎉")
+          className={`mb-4 p-3 rounded text-center ${status.includes("✅") || status.includes("🎉")
               ? "bg-green-800"
               : status.includes("❌")
-              ? "bg-red-800"
-              : "bg-blue-800"
-          }`}
+                ? "bg-red-800"
+                : "bg-blue-800"
+            }`}
         >
           {status}
         </div>

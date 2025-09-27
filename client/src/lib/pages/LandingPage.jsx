@@ -4,16 +4,12 @@ import { Button } from '@/components/ui/8bit/button'
 import connectWallet from '@/lib/connectWallet'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '@/contexts/UserContext'
 
 function LandingPage() {
   const navigate = useNavigate()
+  const { username, updateUsername, updateWalletAddress, walletAddress } = useUser()
   const [btnText, setBtnText] = useState('GET STARTED')
-  const [walletAddress, setWalletAddress] = useState(
-    () => localStorage.getItem('walletAddress') || ''
-  )
-  const [username, setUsername] = useState(
-    () => localStorage.getItem('username') || ''
-  )
 
   // Save walletAddress and username to localStorage whenever they change
   useEffect(() => {
@@ -31,11 +27,12 @@ function LandingPage() {
       localStorage.removeItem('username')
     }
   }, [username])
+  const [localUsername, setLocalUsername] = useState('')
 
   const handleConnect = async () => {
     try {
       const connectedAccount = await connectWallet()
-      setWalletAddress(connectedAccount)
+      updateWalletAddress(connectedAccount)
 
       // Store immediately after connecting
       localStorage.setItem('walletAddress', connectedAccount)
@@ -62,14 +59,14 @@ function LandingPage() {
       }
 
       // User does not exist → save new user
-      if (username.trim() === '') {
+      if (localUsername.trim() === '') {
         alert('Please enter a username')
         return
       }
 
       const { error: insertError } = await supabase
         .from('users')
-        .insert([{ wallet_address: connectedAccount, name: username }])
+        .insert([{ wallet_address: connectedAccount, name: localUsername }])
 
       if (insertError) {
         console.error('Supabase insert error:', insertError)
@@ -78,6 +75,8 @@ function LandingPage() {
       }
 
       localStorage.setItem('username', username)
+      // Update context with new username
+      updateUsername(localUsername)
       navigate('/first')
     } catch (err) {
       console.error('Wallet connection error:', err)
@@ -95,8 +94,7 @@ function LandingPage() {
             localStorage.removeItem('walletAddress')
           } else {
             setBtnText('Go to Dashboard')
-            setWalletAddress(accounts[0])
-            localStorage.setItem('walletAddress', accounts[0])
+            updateWalletAddress(accounts[0])
           }
         } catch (err) {
           console.error('Error checking wallet connection:', err)
@@ -107,7 +105,7 @@ function LandingPage() {
       }
     }
     checkWalletConnection()
-  }, [navigate])
+  }, [navigate, updateWalletAddress])
 
   const unlinkWallet = () => {
     setWalletAddress('')
@@ -170,8 +168,8 @@ function LandingPage() {
             <input
               type="text"
               placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={localUsername}
+              onChange={(e) => setLocalUsername(e.target.value)}
               className="mb-6 p-2 text-white rounded"
             />
 

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/8bit/drawer"
 import { Button } from '@/components/ui/8bit/button';
 import PokemonCard from '@/components/PokimonCard';
+import { usePokemon } from '@/contexts/PokemonContext';
 import { ethers } from 'ethers';
 
 import minimalNFTABI from "../../consts/nftabi.json";
@@ -38,9 +39,10 @@ const AMOY_CONFIG = {
 
 function Dashboard() {
     const navigate = useNavigate();
-
+    const { main, pokemonCollection, updateMainPokemon: setMain } = usePokemon();
+    // const { main, pokemonCollection, updateMainPokemon } = usePokemon();
     const [hoveredNav, setHoveredNav] = useState(null);
-    const [main, setMain] = useState(null);
+    // const [main, setMain] = useState(null);
     const [walletAddress, setWalletAddress] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [ownedNFTs, setOwnedNFTs] = useState([]);
@@ -48,6 +50,7 @@ function Dashboard() {
     const [networkError, setNetworkError] = useState('');
     const [currentNetwork, setCurrentNetwork] = useState('');
 
+    
     // Check network and wallet connection on mount
     useEffect(() => {
         checkWalletConnection();
@@ -312,175 +315,189 @@ function Dashboard() {
         setShowProfileDropdown(false);
     };
 
-    const pokemonSelect = (pokemon) => {
-        setMain(pokemon);
-    }
-
-    const formatAddress = (address) => {
-        if (!address) return "";
-        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    const handleNotificationsClick = () => {
+        console.log('Open Notifications');
+        // Add your notifications logic here
     };
 
-    return (
-        <div className="bg-black h-screen w-full flex justify-center overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full">
-                <img
-                    src="./dashboard_bg.png"
-                    alt="bg-img"
-                    className="w-full h-full object-cover"
-                />
-            </div>
+    const handleUsersClick = () => {
+        console.log('Open Users/Friends');
+        // Add your users logic here
+    };
 
-            <div className='font-pixelify pointer-events-none absolute m-5 top-4 left-4 text-lime-100 text-6xl'>POKIWARS</div>
+    // Pokemon selection handler
+    const pokemonSelect = (pokemon) => {
+        updateMainPokemon(pokemon)
+        const pokemonSelect = (pokemon) => {
+            setMain(pokemon);
+        }
 
-            {/* Network Error Banner */}
-            {networkError && (
-                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white p-3 rounded-lg flex items-center gap-2 z-50">
-                    <AlertCircle size={20} />
-                    <span>{networkError}</span>
-                    <Button
-                        onClick={switchToAmoy}
-                        className="ml-2 bg-red-800 hover:bg-red-700 text-sm"
+        const formatAddress = (address) => {
+            if (!address) return "";
+            return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        };
+
+        return (
+            <div className="bg-black h-screen w-full flex justify-center overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full">
+                    <img
+                        src="./dashboard_bg.png"
+                        alt="bg-img"
+                        className="w-full h-full object-cover"
+                    />
+                </div>
+
+                <div className='font-pixelify pointer-events-none absolute m-5 top-4 left-4 text-lime-100 text-6xl'>POKIWARS</div>
+
+                {/* Network Error Banner */}
+                {networkError && (
+                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white p-3 rounded-lg flex items-center gap-2 z-50">
+                        <AlertCircle size={20} />
+                        <span>{networkError}</span>
+                        <Button
+                            onClick={switchToAmoy}
+                            className="ml-2 bg-red-800 hover:bg-red-700 text-sm"
+                        >
+                            Switch to Amoy
+                        </Button>
+                    </div>
+                )}
+
+                {/* Navbar */}
+                <div className="flex justify-center items-center absolute right-0 m-6 gap-6 border-2 border-white/50 max-w-2xl h-20 px-6 bg-white/30 backdrop-blur-sm rounded-lg">
+                    <div className="text-white text-sm absolute -top-8 right-0">
+                        Network: {currentNetwork}
+                    </div>
+
+                    <div
+                        className="relative nav-button"
+                        onMouseEnter={() => setHoveredNav('profile')}
+                        onMouseLeave={() => setHoveredNav(null)}
+                        onClick={handleProfileClick}
                     >
-                        Switch to Amoy
-                    </Button>
-                </div>
-            )}
-
-            {/* Navbar */}
-            <div className="flex justify-center items-center absolute right-0 m-6 gap-6 border-2 border-white/50 max-w-2xl h-20 px-6 bg-white/30 backdrop-blur-sm rounded-lg">
-                <div className="text-white text-sm absolute -top-8 right-0">
-                    Network: {currentNetwork}
-                </div>
-
-                <div
-                    className="relative nav-button"
-                    onMouseEnter={() => setHoveredNav('profile')}
-                    onMouseLeave={() => setHoveredNav(null)}
-                    onClick={handleProfileClick}
-                >
-                    <User className='font-extrabold size-11 text-white' />
-                    <div className={`tooltip ${hoveredNav === 'profile' ? 'show' : ''}`}>
-                        Profile
-                    </div>
-                    {showProfileDropdown && (
-                        <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
-                            <p className="break-words mb-2"><strong>Wallet:</strong> {formatAddress(walletAddress)}</p>
-                            <p className="mb-2"><strong>NFTs Owned:</strong> {ownedNFTs.length}</p>
-                            <p className="mb-2"><strong>Network:</strong> {currentNetwork}</p>
-                            <button
-                                onClick={handleMyProfileClick}
-                                className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded mb-2"
-                            >
-                                My Profile
-                            </button>
-                            <TokenBalance walletAddress={walletAddress} />
+                        <User className='font-extrabold size-11 text-white' />
+                        <div className={`tooltip ${hoveredNav === 'profile' ? 'show' : ''}`}>
+                            Profile
                         </div>
-                    )}
-                </div>
-
-                {/* Other nav buttons remain the same */}
-            </div>
-
-            {/* Bottom buttons */}
-            <button
-                onClick={handleMarketplaceClick}
-                className='glow-button m-6 flex justify-center items-center text-4xl font-pixelify border-2 border-white/70 absolute left-0 bottom-0 h-40 w-80 text-white bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer'
-                disabled={!!networkError}
-            >
-                GO TO MARKETPLACE
-            </button>
-
-            <button
-                onClick={handleBattleClick}
-                className='glow-button m-6 flex justify-center items-center text-6xl font-pixelify border-2 border-white/70 absolute right-0 bottom-0 h-40 w-80 text-white bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer'
-                disabled={!!networkError || !main}
-            >
-                Battle
-            </button>
-
-            {/* Main character display */}
-            {main ? (
-                <div className='max-h-96 z-10 bounce-animation mt-22 flex items-center justify-center'>
-                    <img src={main.main} alt="Character" className="max-w-md max-h-96 object-contain" />
-                    <div className="absolute bottom-10 bg-black/70 text-white p-2 rounded text-sm">
-                        {main.name} - Lvl {main.level}
-                    </div>
-                </div>
-            ) : (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
-                    <div className="text-4xl mb-4">🎮</div>
-                    <h3 className="text-2xl font-semibold mb-2">Welcome to PokiWars!</h3>
-                    <p className="text-gray-400">Select a Pokemon from your collection to begin</p>
-                </div>
-            )}
-
-            {/* Loading state */}
-            {loading && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
-                    <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p>Loading...</p>
-                </div>
-            )}
-
-            {/* Swap Drawer */}
-            <Drawer>
-                <DrawerTrigger
-                    className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer"
-                    disabled={!!networkError}
-                >
-                    Swap
-                </DrawerTrigger>
-
-                <DrawerContent className="h-110">
-                    <DrawerHeader>
-                        <DrawerTitle className="text-2xl">SELECT YOUR MAIN POKIMON</DrawerTitle>
-                        <DrawerDescription>
-                            {ownedNFTs.length > 0
-                                ? `You own ${ownedNFTs.length} PokiNFT${ownedNFTs.length !== 1 ? 's' : ''}`
-                                : 'No PokiNFTs found'}
-                        </DrawerDescription>
-                    </DrawerHeader>
-
-                    <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
-                        {ownedNFTs.length === 0 ? (
-                            <div className="text-center p-8">
-                                <div className="text-4xl mb-4">🎮</div>
-                                <h3 className="text-xl font-semibold mb-2">No PokiNFTs Yet</h3>
-                                <p className="text-gray-400">Mint your first PokiNFT to start your adventure!</p>
-                            </div>
-                        ) : (
-                            <div className="flex justify-center gap-2 items-center flex-wrap">
-                                {ownedNFTs.map((pokemon) => (
-                                    <PokemonCard
-                                        imageSrc={pokemon.img}
-                                        key={pokemon.tokenId}
-                                        name={pokemon.name}
-                                        type={pokemon.type}
-                                        attack={pokemon.attack}
-                                        range={pokemon.range}
-                                        exp={pokemon.exp}
-                                        level={pokemon.level}
-                                        onClick={() => pokemonSelect(pokemon)}
-                                        isSelected={main && main.tokenId === pokemon.tokenId}
-                                    />
-                                ))}
+                        {showProfileDropdown && (
+                            <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
+                                <p className="break-words mb-2"><strong>Wallet:</strong> {formatAddress(walletAddress)}</p>
+                                <p className="mb-2"><strong>NFTs Owned:</strong> {ownedNFTs.length}</p>
+                                <p className="mb-2"><strong>Network:</strong> {currentNetwork}</p>
+                                <button
+                                    onClick={handleMyProfileClick}
+                                    className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded mb-2"
+                                >
+                                    My Profile
+                                </button>
+                                <TokenBalance walletAddress={walletAddress} />
                             </div>
                         )}
                     </div>
 
-                    <DrawerClose className="absolute m-4 top-0 right-0">
-                        <Button variant="outline">Cancel</Button>
-                    </DrawerClose>
-                </DrawerContent>
-            </Drawer>
+                    {/* Other nav buttons remain the same */}
+                </div>
 
-            {/* Custom CSS remains the same */}
-            <style jsx>{`
+                {/* Bottom buttons */}
+                <button
+                    onClick={handleMarketplaceClick}
+                    className='glow-button m-6 flex justify-center items-center text-4xl font-pixelify border-2 border-white/70 absolute left-0 bottom-0 h-40 w-80 text-white bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer'
+                    disabled={!!networkError}
+                >
+                    GO TO MARKETPLACE
+                </button>
+
+                <button
+                    onClick={handleBattleClick}
+                    className='glow-button m-6 flex justify-center items-center text-6xl font-pixelify border-2 border-white/70 absolute right-0 bottom-0 h-40 w-80 text-white bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer'
+                    disabled={!!networkError || !main}
+                >
+                    Battle
+                </button>
+
+                {/* Main character display */}
+                {main ? (
+                    <div className='max-h-96 z-10 bounce-animation mt-22 flex items-center justify-center'>
+                        <img src={main.main} alt="Character" className="max-w-md max-h-96 object-contain" />
+                        <div className="absolute bottom-10 bg-black/70 text-white p-2 rounded text-sm">
+                            {main.name} - Lvl {main.level}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
+                        <div className="text-4xl mb-4">🎮</div>
+                        <h3 className="text-2xl font-semibold mb-2">Welcome to PokiWars!</h3>
+                        <p className="text-gray-400">Select a Pokemon from your collection to begin</p>
+                    </div>
+                )}
+
+                {/* Loading state */}
+                {loading && (
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
+                        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p>Loading...</p>
+                    </div>
+                )}
+
+                {/* Swap Drawer */}
+                <Drawer>
+                    <DrawerTrigger
+                        className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer"
+                        disabled={!!networkError}
+                    >
+                        Swap
+                    </DrawerTrigger>
+
+                    <DrawerContent className="h-110">
+                        <DrawerHeader>
+                            <DrawerTitle className="text-2xl">SELECT YOUR MAIN POKIMON</DrawerTitle>
+                            <DrawerDescription>
+                                {ownedNFTs.length > 0
+                                    ? `You own ${ownedNFTs.length} PokiNFT${ownedNFTs.length !== 1 ? 's' : ''}`
+                                    : 'No PokiNFTs found'}
+                            </DrawerDescription>
+                        </DrawerHeader>
+
+                        <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
+                            {ownedNFTs.length === 0 ? (
+                                <div className="text-center p-8">
+                                    <div className="text-4xl mb-4">🎮</div>
+                                    <h3 className="text-xl font-semibold mb-2">No PokiNFTs Yet</h3>
+                                    <p className="text-gray-400">Mint your first PokiNFT to start your adventure!</p>
+                                </div>
+                            ) : (
+                                <div className="flex justify-center gap-2 items-center flex-wrap">
+                                    {ownedNFTs.map((pokemon) => (
+                                        <PokemonCard
+                                            imageSrc={pokemon.img}
+                                            key={pokemon.tokenId}
+                                            name={pokemon.name}
+                                            type={pokemon.type}
+                                            attack={pokemon.attack}
+                                            range={pokemon.range}
+                                            exp={pokemon.exp}
+                                            level={pokemon.level}
+                                            onClick={() => pokemonSelect(pokemon)}
+                                            isSelected={main && main.tokenId === pokemon.tokenId}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <DrawerClose className="absolute m-4 top-0 right-0">
+                            <Button variant="outline">Cancel</Button>
+                        </DrawerClose>
+                    </DrawerContent>
+                </Drawer>
+
+                {/* Custom CSS remains the same */}
+                <style jsx>{`
                 /* ... your existing CSS ... */
             `}</style>
-        </div>
-    )
+            </div>
+        )
+    }
 }
 
 export default Dashboard

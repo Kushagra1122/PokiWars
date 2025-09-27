@@ -17,6 +17,13 @@ export default class MainGameScene extends Phaser.Scene {
     this.shootCooldown = 250;
     this.lastShotTime = 0;
     this.interpolationFactor = 0.1;
+    
+    // Timer properties
+    this.gameTimer = null;
+    this.gameTimeLimit = 0; // Will be set from lobby settings
+    this.gameTimeRemaining = 0;
+    this.timerText = null;
+    this.isTimerActive = false;
   }
 
   preload() {
@@ -32,6 +39,11 @@ export default class MainGameScene extends Phaser.Scene {
   create() {
     const selectedChar = this.registry.get("selectedCharacter") || "ALAKAZAM";
     this.gameState = { isGameOver: false, winner: null };
+    
+    // Get game settings from registry or default values
+    const gameSettings = this.registry.get("gameSettings") || { timeLimit: 10 };
+    this.gameTimeLimit = gameSettings.timeLimit * 60; // Convert minutes to seconds
+    this.gameTimeRemaining = this.gameTimeLimit;
 
     // --- TILEMAP SETUP ---
     this.map = this.make.tilemap({ key: "map" });
@@ -87,6 +99,7 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameUI = new GameUI(this);
     this.gameOverlay = new GameOverlay(this);
     this.createPlayerHealthBar();
+    this.createGameTimer();
     this.setupGameElements();
 
     // --- MANAGERS ---
@@ -133,6 +146,7 @@ export default class MainGameScene extends Phaser.Scene {
     this.interpolateOtherPlayers();
     this.updatePlayerHealthBar();
     this.updateOtherPlayersUI();
+    this.updateGameTimer();
   }
 
   updateBullets(delta) {
@@ -312,6 +326,94 @@ export default class MainGameScene extends Phaser.Scene {
     this.player.healthBar = new HealthBar(this, this.player.sprite.x, this.player.sprite.y, this.player.health, 100, true);
   }
 
+  createGameTimer() {
+    // Create timer display in top center of screen
+    const centerX = this.scale.width / 2;
+    const topY = 30;
+    
+    // Timer background
+    this.timerBg = this.add.rectangle(centerX, topY, 150, 40, 0x000000, 0.7)
+      .setDepth(1000);
+    
+    // Timer text
+    this.timerText = this.add.text(centerX, topY, this.formatTime(this.gameTimeRemaining), {
+      fontSize: '20px',
+      fontFamily: 'Arial',
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5).setDepth(1001);
+  }
+
+  updateGameTimer() {
+    if (!this.isTimerActive || this.gameState.isGameOver) return;
+    
+    // Update timer every second
+    if (this.time.now % 1000 < 16) { // Roughly once per second
+      this.gameTimeRemaining--;
+      
+      if (this.timerText) {
+        this.timerText.setText(this.formatTime(this.gameTimeRemaining));
+        
+        // Change color as time runs out
+        if (this.gameTimeRemaining <= 30) {
+          this.timerText.setFill('#ff0000'); // Red for last 30 seconds
+        } else if (this.gameTimeRemaining <= 60) {
+          this.timerText.setFill('#ffff00'); // Yellow for last minute
+        } else {
+          this.timerText.setFill('#ffffff'); // White normally
+        }
+      }
+      
+      // End game when timer reaches 0
+      if (this.gameTimeRemaining <= 0) {
+        this.handleTimeUp();
+      }
+    }
+  }
+
+  formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  startGameTimer() {
+    this.isTimerActive = true;
+  }
+
+  stopGameTimer() {
+    this.isTimerActive = false;
+  }
+
+  handleTimeUp() {
+    this.stopGameTimer();
+    this.gameState.isGameOver = true;
+    
+    // Determine winner based on highest health or score
+    let winnerId = null;
+    let winnerChar = null;
+    let highestScore = this.player.health || 0;
+    
+    // Check other players
+    Object.keys(this.otherPlayers).forEach(id => {
+      const player = this.otherPlayers[id];
+      if (player.health > highestScore) {
+        highestScore = player.health;
+        winnerId = id;
+        winnerChar = player.sprite.texture.key;
+      }
+    });
+    
+    // If local player has highest score, they win
+    if (highestScore === this.player.health) {
+      winnerId = this.socketManager.socket.id;
+      winnerChar = this.player.sprite.texture.key;
+    }
+    
+    this.showGameOver(winnerId, winnerChar);
+  }
+
   isValidSpawnPosition(x, y, minDistance = 32) {
     // Convert world coordinates to unscaled coordinates for tilemap checking
     const unscaledX = x / this.scaleX;
@@ -378,6 +480,13 @@ export default class MainGameScene extends Phaser.Scene {
   }
 
   shutdown() {
+    // Stop timer
+    this.stopGameTimer();
+    
+    // Clean up timer UI
+    this.timerText?.destroy();
+    this.timerBg?.destroy();
+    
     // Clean up UI elements
     this.crosshair?.destroy();
     this.aimLine?.destroy();
