@@ -31,9 +31,13 @@ export default class MainGameScene extends Phaser.Scene {
     this.load.tilemapTiledJSON("map", mapJSON);
     
     // Load character images using proper import paths
-    this.load.image('ALAKAZAM', 'src/assets/characters/ALAKAZAM.png');
-    this.load.image('BLASTOISE', 'src/assets/characters/BLASTOISE.png');
-    this.load.image('CHARIZARD', 'src/assets/characters/CHARIZARD.png');
+    const chars = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
+    chars.forEach((char) => {
+      this.load.spritesheet(char, `src/assets/characters/${char}.png`, {
+        frameWidth: 64,
+        frameHeight: 64
+      });
+    });
   }
 
   create() {
@@ -87,6 +91,8 @@ export default class MainGameScene extends Phaser.Scene {
     this.physics.add.collider(this.player.sprite, this.treesLayer);
     this.physics.add.collider(this.player.sprite, this.stonesLayer);
 
+    this.createAnimations(selectedChar);
+
     // Depth ordering
     this.groundLayer.setDepth(0);
     this.slideLayer.setDepth(1);
@@ -110,6 +116,41 @@ export default class MainGameScene extends Phaser.Scene {
     // Connect to server
     this.socketManager.connectForGame(selectedChar);
   }
+
+  createAnimations(selectedChar) {
+    const characters = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
+    const directions = ["down", "left", "right", "up"]; // Row order
+    const frameRate = 8;
+
+    characters.forEach(char => {
+      directions.forEach((dir, rowIndex) => {
+        // Walking animation (4 frames per row)
+        this.anims.create({
+          key: `${char}_${dir}`,
+          frames: this.anims.generateFrameNumbers(char, {
+            start: rowIndex * 4,
+            end: rowIndex * 4 + 3
+          }),
+          frameRate: frameRate,
+          repeat: -1
+        });
+
+        // Idle animation (first frame of each row)
+        this.anims.create({
+          key: `${char}_${dir}_idle`,
+          frames: [{ key: char, frame: rowIndex * 4 }],
+          frameRate: 1,
+          repeat: -1
+        });
+      });
+    });
+
+    // Play selected character's default idle animation
+    if (this.player?.sprite) {
+      this.player.sprite.anims.play(`${selectedChar}_down_idle`);
+    }
+  }
+
 
   setupGameElements() {
     this.shootRange = 150;
@@ -135,10 +176,36 @@ export default class MainGameScene extends Phaser.Scene {
       this.player.sprite.body.setVelocity(moveX * speed, moveY * speed);
       this.player.sprite.body.velocity.normalize().scale(speed);
 
+      // Emit movement to server every 50ms
       if (this.time.now - this.lastUpdateTime > 50) {
         this.socketManager.emitMovement(this.player.sprite.x, this.player.sprite.y);
         this.lastUpdateTime = this.time.now;
       }
+
+      // Determine animation based on direction
+      let direction = "down"; // default
+      if (Math.abs(moveX) > Math.abs(moveY)) {
+        direction = moveX < 0 ? "left" : "right";
+      } else if (Math.abs(moveY) > 0) {
+        direction = moveY < 0 ? "up" : "down";
+      }
+
+      // Play walking animation if not already playing
+      const walkAnim = `${this.player.char}_${direction}`;
+      if (this.player.sprite.anims.getCurrentKey() !== walkAnim) {
+        this.player.sprite.anims.play(walkAnim, true);
+      }
+
+    } else {
+      // Idle animation based on last direction
+      const currentAnim = this.player.sprite.anims.getCurrentKey();
+      if (currentAnim && !currentAnim.includes("_idle")) {
+        const idleAnim = `${this.player.char}_${currentAnim.split("_")[1]}_idle`;
+        this.player.sprite.anims.play(idleAnim, true);
+      }
+
+      // Stop movement
+      this.player.sprite.body.setVelocity(0);
     }
 
     this.inputHandler.update(delta);

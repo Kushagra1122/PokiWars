@@ -1,15 +1,15 @@
 import Phaser from "phaser";
 
 export default class MarketPlacePlayer {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, charKey) {
         this.scene = scene;
+        this.char = charKey;
         this.health = 100;
         this.score = 0;
         this.moveSpeed = 160;
 
         // Create MarketPlacePlayer sprite with physics
-        this.sprite = scene.physics.add.sprite(x, y, 'MarketPlacePlayer');
-        this.sprite.setScale(0.3);
+        this.sprite = scene.physics.add.sprite(x, y, this.char);
         
         // Configure physics body - use rectangle instead of circle for more precise collision
         this.sprite.body.setSize(40, 40); // Smaller collision box
@@ -150,6 +150,18 @@ export default class MarketPlacePlayer {
         if (finalVelX !== 0 || finalVelY !== 0) {
             this.direction.rotation = Math.atan2(finalVelY, finalVelX);
         }
+
+        // Play animation based on direction
+        if (this.isMoving) {
+            if (finalVelY > 0) this.sprite.anims.play("walk-down", true);
+            else if (finalVelY < 0) this.sprite.anims.play("walk-up", true);
+            else if (finalVelX < 0) this.sprite.anims.play("walk-left", true);
+            else if (finalVelX > 0) this.sprite.anims.play("walk-right", true);
+        } else {
+            // Stop animation or show idle frame
+            this.sprite.anims.stop();
+        }
+
     }
 
     // Enhanced collision handling with tiles

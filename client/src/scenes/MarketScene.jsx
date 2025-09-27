@@ -10,7 +10,7 @@ import apathyHousesTiles from "../assets/maps/Apathy Houses.png";
 import MarketPlacePlayer from "../entities/MarketPlacePlayer.js";
 
 // Import MarketPlacePlayer image
-import marketPlacePlayerImg from "../assets/characters/ALAKAZAM.png";
+import marketPlacePlayerImg from "../assets/marketplace_roam.png";
 
 export default class MarketScene extends Phaser.Scene {
   constructor() {
@@ -32,7 +32,10 @@ export default class MarketScene extends Phaser.Scene {
     this.load.image("apathy-houses-tiles", apathyHousesTiles);
     
     // Load MarketPlacePlayer character image
-    this.load.image("MarketPlacePlayer", marketPlacePlayerImg);
+    this.load.spritesheet("MarketPlacePlayer", marketPlacePlayerImg, {
+      frameWidth: 32,   // 128px / 4 frames
+      frameHeight: 48,  // 192px / 4 rows
+    });
   }
 
   create() {
@@ -136,6 +139,36 @@ export default class MarketScene extends Phaser.Scene {
     // Store initial camera position for reset
     this.initialCameraX = widthInPixels / 2;
     this.initialCameraY = heightInPixels / 2;
+
+    // Define walking animations for each direction
+    this.anims.create({
+      key: "walk-down",
+      frames: this.anims.generateFrameNumbers("MarketPlacePlayer", { start: 0, end: 3 }),
+      frameRate: 8,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: "walk-left",
+      frames: this.anims.generateFrameNumbers("MarketPlacePlayer", { start: 4, end: 7 }),
+      frameRate: 8,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: "walk-right",
+      frames: this.anims.generateFrameNumbers("MarketPlacePlayer", { start: 8, end: 11 }),
+      frameRate: 8,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: "walk-up",
+      frames: this.anims.generateFrameNumbers("MarketPlacePlayer", { start: 12, end: 15 }),
+      frameRate: 8,
+      repeat: -1
+    });
+
 
     // Spawn MarketPlacePlayer randomly (only once)
     if (!this.marketPlacePlayerSpawned) {
@@ -357,7 +390,7 @@ export default class MarketScene extends Phaser.Scene {
     const tempSpawn = this.getSafeSpawnPosition();
     
     // Create MarketPlacePlayer instance
-    this.marketPlacePlayer = new MarketPlacePlayer(this, tempSpawn.x, tempSpawn.y);
+    this.marketPlacePlayer = new MarketPlacePlayer(this, tempSpawn.x, tempSpawn.y, "MarketPlacePlayer");
     
     // Set collision with world bounds
     this.marketPlacePlayer.sprite.body.setCollideWorldBounds(true);
