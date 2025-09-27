@@ -14,16 +14,13 @@ import {
 } from "@/components/ui/8bit/drawer"
 import { Button } from '@/components/ui/8bit/button';
 import PokemonCard from '@/components/PokimonCard';
+import { usePokemon } from '@/contexts/PokemonContext';
 
 function Dashboard() {
     const navigate = useNavigate();
+    const { main, pokemonCollection, updateMainPokemon } = usePokemon();
 
     const [hoveredNav, setHoveredNav] = useState(null);
-    
-    //update this state addd.
-    const [main, setMain] = useState({ name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img:'./venu-thumbnail.png', main:'./venu.png' })
-    
-    
     const [walletAddress, setWalletAddress] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
@@ -84,20 +81,9 @@ function Dashboard() {
         // Add your users logic here
     };
 
-    //TODO: replace with original
-    const samplePokemon = [
-        { name: "Pikachu", type: "Electric", attack: 75, range: 4, exp: 85, level: 12, img:'./venu-thumbnail.png', main:'./venu.png' },
-        { name: "Charizard", type: "Fire", attack: 95, range: 5, exp: 45, level: 18, img:'./blastoise-thumbnail.png', main:'./blast.png' },
-        { name: "Blastoise", type: "Water", attack: 80, range: 3, exp: 90, level: 15, img:'./chariz-thumbnail.png', main:'./chariz.png' },
-        { name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img:'./venu-thumbnail.png', main:'./venu.png' },
-        { name: "Alakazam", type: "Psychic", attack: 70, range: 6, exp: 65, level: 20, img:'./blastoise-thumbnail.png', main:'./blast.png' },
-        { name: "Machamp", type: "Fighting", attack: 100, range: 2, exp: 10, level: 14, img:'./chariz-thumbnail.png', main:'./chariz.png' }
-      ];
-
-    
-    //Todo: change this accordinglyy 
+    // Pokemon selection handler
     const pokemonSelect = (pokemon) => {
-        setMain(pokemon)
+        updateMainPokemon(pokemon)
     }
     return (
         <div className="bg-black h-screen w-full flex justify-center overflow-hidden">
@@ -254,7 +240,7 @@ function Dashboard() {
 
                     <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
                         <div className="flex justify-center gap-2 items-center gap flex-wrap">
-                            {samplePokemon.map((pokemon, index) => (
+                            {pokemonCollection.map((pokemon, index) => (
                             <PokemonCard
                                 imageSrc={pokemon.img}
                                 key={index}

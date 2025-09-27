@@ -4,18 +4,19 @@ import { Button } from '@/components/ui/8bit/button'
 import connectWallet from '@/lib/connectWallet'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '@/contexts/UserContext'
 
 function LandingPage() {
   const navigate = useNavigate()
+  const { username, updateUsername, updateWalletAddress, walletAddress } = useUser()
   const [btnText, setBtnText] = useState('GET STARTED')
-  const [walletAddress, setWalletAddress] = useState('')
-  const [username, setUsername] = useState('')
+  const [localUsername, setLocalUsername] = useState('')
 
   // ✅ New handleConnect function that checks Supabase
   const handleConnect = async () => {
     try {
       const connectedAccount = await connectWallet()
-      setWalletAddress(connectedAccount)
+      updateWalletAddress(connectedAccount)
 
       // Check if user exists in Supabase
       const { data, error } = await supabase
@@ -31,20 +32,21 @@ function LandingPage() {
       }
 
       if (data) {
-        // User exists → navigate directly to dashboard
+        // User exists → update context and navigate directly to dashboard
+        updateUsername(data.name)
         navigate('/dashboard')
         return
       }
 
       // User does not exist → save new user
-      if (username.trim() === '') {
+      if (localUsername.trim() === '') {
         alert('Please enter a username')
         return
       }
 
       const { error: insertError } = await supabase
         .from('users')
-        .insert([{ wallet_address: connectedAccount, name: username }])
+        .insert([{ wallet_address: connectedAccount, name: localUsername }])
 
       if (insertError) {
         console.error('Supabase insert error:', insertError)
@@ -52,6 +54,8 @@ function LandingPage() {
         return
       }
 
+      // Update context with new username
+      updateUsername(localUsername)
       navigate('/first')
     } catch (err) {
       console.error('Wallet connection error:', err)
@@ -68,7 +72,7 @@ function LandingPage() {
             setBtnText('Connect Wallet')
           } else {
             setBtnText('Go to Dashboard')
-            setWalletAddress(accounts[0])
+            updateWalletAddress(accounts[0])
           }
         } catch (err) {
           console.error('Error checking wallet connection:', err)
@@ -79,7 +83,7 @@ function LandingPage() {
       }
     }
     checkWalletConnection()
-  }, [navigate])
+  }, [navigate, updateWalletAddress])
 
   return (
     <div className="bg-black h-screen">
@@ -129,8 +133,8 @@ function LandingPage() {
             <input
               type="text"
               placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={localUsername}
+              onChange={(e) => setLocalUsername(e.target.value)}
               className="mb-6 p-2 text-white rounded"
             />
 

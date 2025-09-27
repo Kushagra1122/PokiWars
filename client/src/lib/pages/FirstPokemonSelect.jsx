@@ -51,7 +51,10 @@ export default function StarterAnimation({ userAddress, provider, pythRNG }) {
 
   return (
     <div className="bg-black h-screen w-full flex flex-col justify-center items-center font-pixelify text-white ">
-      <h2 className="text-4xl mt-10">Choose your starter Pokémon!</h2>
+      <div className="absolute  top-0 left-0 w-full h-full ">
+        <img className="w-full h-full object-cover" src="./pokimonChoose.png" alt="" />
+      </div>
+      <h2 className="text-4xl mt-10 z-10 text-black">Choose your starter Pokémon!</h2>
       <div className="flex h-screen w-full justify-center items-center gap-20">
         {pokemonList.map((pokemon, index) => (
           <PokemonCard
