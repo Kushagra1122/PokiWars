@@ -1,0 +1,11 @@
+const GAME_CONFIG = {
+    PLAYER_SIZE: 80,
+    MIN_SPAWN_DISTANCE: 100,
+    MAX_HEALTH: 100,
+    DAMAGE_PER_SHOT: 20,
+    WIN_SCORE: 5,
+    RESPAWN_DELAY: 1500, 
+    GAME_RESTART_DELAY: 3000 
+};
+
+module.exports = { GAME_CONFIG };
