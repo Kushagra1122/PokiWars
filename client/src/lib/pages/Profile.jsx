@@ -1,27 +1,69 @@
 import PokemonCard from '@/components/PokimonCard';
 import { Button } from '@/components/ui/8bit/button';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { usePokemon } from '@/contexts/PokemonContext';
-import { useUser } from '@/contexts/UserContext';
+import { supabase } from '@/lib/supabaseClient';     // ✅ Supabase client
+import { ethers } from 'ethers';                     // ✅ for reading current wallet
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const { pokemonCollection, fetchNFTsForAddress } = usePokemon();
-  const { username, walletAddress, clearUser, tokenBalance, balanceError } = useUser();
-  
-  const [noOfFriends, setNoOfFriends] = useState(69);
-  const [totalBot, setTotalBot] = useState(42);
-  const [kills, setKills] = useState(127);
-  const [won, setWon] = useState(23);
-  const [kd, setKd] = useState('2.8');
+  // --- user stats from DB ---
+  const [username, setUsername] = useState('');
+  const [noOfFriends, setNoOfFriends] = useState(0); // adjust if you add a friends table
+  const [amount, setAmount] = useState(0);           // adjust if you track balance
+  const [totalBot, setTotalBot] = useState(0);
+  const [kills, setKills] = useState(0);
+  const [won, setWon] = useState(0);
+  const [kd, setKd] = useState('0');
 
-  // Fetch NFTs when component mounts or wallet address changes
+  // --- fetch user info once on mount ---
   useEffect(() => {
-    if (walletAddress) {
-      fetchNFTsForAddress(walletAddress);
+    async function loadUser() {
+      try {
+        // 1. Get connected wallet
+        if (!window.ethereum) {
+          console.error('MetaMask not found');
+          return;
+        }
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
+        if (!accounts || accounts.length === 0) return;
+        const wallet = accounts[0];
+
+        // 2. Query Supabase
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('wallet_address', wallet)
+          .single();
+
+        if (error) {
+          console.error('Supabase fetch error:', error);
+          return;
+        }
+        if (!data) return;
+
+        // 3. Update UI state
+        setUsername(data.name);
+        setTotalBot(data.matches);
+        setKills(data.kills);
+        const deaths = data.deaths || 0;
+        setKd(deaths === 0 ? `${data.kills}` : (data.kills / deaths).toFixed(2));
+        // you can set amount/noOfFriends from other tables if you have them
+      } catch (err) {
+        console.error('Error loading user:', err);
+      }
     }
-  }, [walletAddress, fetchNFTsForAddress]);
+
+    loadUser();
+  }, []);
+
+  const samplePokemon = [
+    { name: "Pikachu", type: "Electric", attack: 75, range: 4, exp: 85, level: 12, img: './venu-thumbnail.png', main: './venu.png' },
+    { name: "Charizard", type: "Fire", attack: 95, range: 5, exp: 45, level: 18, img: './blastoise-thumbnail.png', main: './blast.png' },
+    { name: "Blastoise", type: "Water", attack: 80, range: 3, exp: 90, level: 15, img: './chariz-thumbnail.png', main: './chariz.png' },
+    { name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img: './venu-thumbnail.png', main: './venu.png' },
+    { name: "Alakazam", type: "Psychic", attack: 70, range: 6, exp: 65, level: 20, img: './blastoise-thumbnail.png', main: './blast.png' },
+    { name: "Machamp", type: "Fighting", attack: 100, range: 2, exp: 10, level: 14, img: './chariz-thumbnail.png', main: './chariz.png' }
+  ];
 
   const StatCard = ({ label, value, color = 'green' }) => {
     const colorClasses = {
@@ -32,10 +74,7 @@ const Profile = () => {
     };
 
     return (
-      <div className={`
-        ${colorClasses[color]}
-        border-2 border-solid p-3 text-center font-mono font-bold
-      `}>
+      <div className={`${colorClasses[color]} border-2 border-solid p-3 text-center font-mono font-bold`}>
         <div className="text-xs uppercase tracking-wider opacity-80 mb-1">{label}</div>
         <div className="text-2xl">{value}</div>
       </div>
@@ -43,8 +82,7 @@ const Profile = () => {
   };
 
   const HandleLogout = () => {
-    clearUser();
-    navigate('/');
+    // add wallet disconnect / sign-out logic if needed
   };
 
   return (
@@ -57,77 +95,58 @@ const Profile = () => {
           </div>
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-          username:<div>{username || 'Player1'}</div>
+          username:<div>{username || '...'}</div>
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
           ttl friends: {noOfFriends}
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-          amount: {balanceError ? 'Error' : tokenBalance !== null ? parseFloat(tokenBalance).toFixed(2) : 'Loading...'}
+          amount: {amount}
         </div>
       </div>
 
-      {/* Main Content Area - Two Column Layout - Takes remaining height */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 px-4 pb-4">
-
-        {/* Left Panel - Stats */}
+        {/* Left Panel */}
         <div className="h-130 w-full bg-white/10 border-4 border-white-500 p-4 shadow-[0_0_15px_#ffffff] flex flex-col">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard label="Total Battles" value={totalBot} color="green" />
             <StatCard label="Kills" value={kills} color="red" />
             <StatCard label="Wins" value={won} color="blue" />
             <StatCard label="K/D" value={kd} color="yellow" />
-            <StatCard 
-              label="Poki Tokens" 
-              value={balanceError ? 'Error' : tokenBalance !== null ? parseFloat(tokenBalance).toFixed(2) : 'Loading...'} 
-              color="green" 
-            />
           </div>
 
-          {/* Spacer to push button to bottom */}
           <div className="flex-1"></div>
-
-          {/* Action Button - At bottom of left panel */}
           <div className="px-2">
-            <Button
-              className="text-lg bg-white/20 w-full"
-              onClick={() => HandleLogout()}
-            >
+            <Button className="text-lg bg-white/20 w-full" onClick={HandleLogout}>
               Log Out
             </Button>
           </div>
         </div>
 
-        {/* Right Panel - Pokemon Cards with Scroll */}
+        {/* Right Panel - Pokemon Cards */}
         <div className="h-130 w-full border-4 bg-white/10 p-4 shadow-[0_0_15px_#8b5cf6] flex flex-col">
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-3 gap-2">
-              {pokemonCollection.length > 0 ? (
-                pokemonCollection.map((pokemon, index) => (
-                  <div className='scale-95' key={pokemon.tokenId || index}>
-                    <PokemonCard
-                      imageSrc={pokemon.img}
-                      name={pokemon.name}
-                      type={pokemon.type}
-                      attack={pokemon.attack}
-                      range={pokemon.range}
-                      exp={pokemon.exp}
-                      level={pokemon.level}
-                    // onClick={()=>pokemonSelect(pokemon)}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-3 text-center text-gray-400 font-pixelify text-lg py-8">
-                  No Pokemon found. Connect your wallet to view your collection.
+              {samplePokemon.map((pokemon, index) => (
+                <div key={index} className="scale-95">
+                  <PokemonCard
+                    imageSrc={pokemon.img}
+                    name={pokemon.name}
+                    type={pokemon.type}
+                    attack={pokemon.attack}
+                    range={pokemon.range}
+                    exp={pokemon.exp}
+                    level={pokemon.level}
+                  />
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-export default Profile;
+export default Profile;
