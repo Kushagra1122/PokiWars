@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
+import { usePokemon } from '../../contexts/PokemonContext';
 
 export default function JoinLobby() {
   const navigate = useNavigate();
+  const { main } = usePokemon();
   const [playerName, setPlayerName] = useState('');
   const [selectedCharacter, setSelectedCharacter] = useState('ALAKAZAM');
   const [lobbies, setLobbies] = useState([]);
@@ -113,6 +115,50 @@ export default function JoinLobby() {
               <p className="text-sm text-gray-400 mb-2">Joining lobby:</p>
               <p className="font-semibold">{selectedLobby.hostName}'s Lobby</p>
               <p className="text-sm text-gray-400">{selectedLobby.map} • {selectedLobby.playerCount}/{selectedLobby.maxPlayers} players</p>
+            </div>
+
+            {/* Selected Pokemon Display */}
+            <div className="bg-gray-700 rounded-lg p-3">
+              <h4 className="text-sm font-semibold mb-2 text-center">Your Pokemon</h4>
+              {main ? (
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="text-center">
+                    <img
+                      src={main.main || main.img}
+                      alt={main.name}
+                      className="w-12 h-12 mx-auto mb-1 object-contain"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    <h5 className="text-xs font-semibold text-white">{main.name}</h5>
+                    <p className="text-xs text-gray-400 capitalize">{main.type}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    <div className="text-center">
+                      <div className="text-red-400 font-bold">{main.attack || 0}</div>
+                      <div className="text-gray-400">ATK</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-blue-400 font-bold">{main.defense || 0}</div>
+                      <div className="text-gray-400">DEF</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-green-400 font-bold">{main.speed || 0}</div>
+                      <div className="text-gray-400">SPD</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-purple-400 font-bold">{main.level || 1}</div>
+                      <div className="text-gray-400">LVL</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <div className="text-2xl mb-1">🎮</div>
+                  <p className="text-gray-400 text-xs">No Pokemon selected</p>
+                </div>
+              )}
             </div>
 
             {selectedLobby.isPrivate && (

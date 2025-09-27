@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { ethers } from 'ethers'
 import tokenABI from '@/consts/tokenabi.json'
 
-const POKI_TOKEN_ADDRESS = '0xa599dac243deca9b35c57639dc1dfb1f3368e26b';
+const POKI_TOKEN_ADDRESS = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
 
 const UserContext = createContext()
 

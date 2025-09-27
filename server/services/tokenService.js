@@ -12,7 +12,7 @@ class TokenService {
             'https://rpc.ankr.com/polygon'
         ];
         this.rpcUrl = this.rpcUrls[0]; // Start with the first one
-        this.contractAddress = '0xa599dac243deca9b35c57639dc1dfb1f3368e26b';
+        this.contractAddress = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
         
         // Validate private key
         if (!this.privateKey) {

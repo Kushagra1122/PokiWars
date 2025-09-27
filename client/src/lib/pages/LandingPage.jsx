@@ -100,7 +100,7 @@ function LandingPage() {
       // Update context with new username
       updateUsername(localUsername.trim())
       setShowUsernamePopup(false)
-      navigate('/first')
+      navigate('/dashboard')
     } catch (err) {
       console.error('Error creating user:', err)
       alert('Failed to create user. Please try again.')

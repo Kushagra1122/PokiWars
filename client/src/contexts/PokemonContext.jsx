@@ -29,7 +29,14 @@ function getMainImageFromTrait(specialTrait) {
 }
 
 export const PokemonProvider = ({ children }) => {
-  const [main, setMain] = useState(null);
+  const [main, setMain] = useState(() => {
+    // Load main Pokemon from localStorage on initialization
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mainPokemon');
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
   const [pokemonCollection, setPokemonCollection] = useState([]);
 
   async function fetchNFTsForAddress(address) {
@@ -45,10 +52,47 @@ export const PokemonProvider = ({ children }) => {
         const tokenURI = await contract.tokenURI(tokenId);
         const attributes = await contract.getAttributes(tokenId);
 
+        // Use tokenURI directly as image URL (since metadataURI stores image URLs directly)
+        let actualImage = getImageFromTrait(parseInt(attributes.specialTrait.toString()));
+        let actualMainImage = getMainImageFromTrait(parseInt(attributes.specialTrait.toString()));
+        let actualName = `PokiNFT #${tokenId.toString()}`;
+        let actualType = getTypeFromTrait(parseInt(attributes.specialTrait.toString()));
+        
+        // Check if tokenURI is a valid image URL
+        if (tokenURI && (tokenURI.includes('http') || tokenURI.includes('https'))) {
+          // Use tokenURI directly as the image URL
+          actualImage = tokenURI;
+          actualMainImage = tokenURI;
+          console.log(`Using tokenURI as image for token ${tokenId}:`, tokenURI);
+          
+          // Map Pokemon based on the image URL pattern
+          const pokemonMapping = {
+            'blastoise': { name: 'Blastoise', type: 'Water' },
+            'chariz': { name: 'Charizard', type: 'Fire' },
+            'venu': { name: 'Venusaur', type: 'Grass' },
+            'geng': { name: 'Gengar', type: 'Ghost' },
+            'alak': { name: 'Alakazam', type: 'Psychic' },
+            'snor': { name: 'Snorlax', type: 'Normal' }
+          };
+          
+          // Try to match the Pokemon based on the URL
+          const urlLower = tokenURI.toLowerCase();
+          for (const [key, pokemon] of Object.entries(pokemonMapping)) {
+            if (urlLower.includes(key)) {
+              actualName = pokemon.name;
+              actualType = pokemon.type;
+              console.log(`Matched Pokemon: ${pokemon.name} (${pokemon.type})`);
+              break;
+            }
+          }
+        } else {
+          console.warn(`Invalid tokenURI for token ${tokenId}:`, tokenURI);
+        }
+
         const pokemonData = {
           tokenId: tokenId.toNumber(),
-          name: `PokiNFT #${tokenId.toString()}`,
-          type: getTypeFromTrait(parseInt(attributes.specialTrait.toString())),
+          name: actualName,
+          type: actualType,
           attack: parseInt(attributes.attack.toString()),
           range: Math.floor(parseInt(attributes.radius.toString()) / 3),
           exp: parseInt(attributes.xp.toString()),
@@ -56,8 +100,9 @@ export const PokemonProvider = ({ children }) => {
           health: parseInt(attributes.health.toString()),
           defense: parseInt(attributes.defense.toString()),
           speed: parseInt(attributes.speed.toString()),
-          img: getImageFromTrait(parseInt(attributes.specialTrait.toString())),
-          main: getMainImageFromTrait(parseInt(attributes.specialTrait.toString())),
+          img: actualImage,
+          main: actualMainImage,
+          metadataURI: tokenURI,
           attributes: {
             level: attributes.level.toString(),
             xp: attributes.xp.toString(),
@@ -82,7 +127,17 @@ export const PokemonProvider = ({ children }) => {
     }
   }
 
-  const updateMainPokemon = (pokemon) => setMain(pokemon);
+  const updateMainPokemon = (pokemon) => {
+    setMain(pokemon);
+    // Save to localStorage for persistence
+    if (typeof window !== 'undefined') {
+      if (pokemon) {
+        localStorage.setItem('mainPokemon', JSON.stringify(pokemon));
+      } else {
+        localStorage.removeItem('mainPokemon');
+      }
+    }
+  };
 
   return (
     <PokemonContext.Provider value={{ main, pokemonCollection, setMain, setPokemonCollection, fetchNFTsForAddress, updateMainPokemon }}>

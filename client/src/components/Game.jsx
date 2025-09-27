@@ -4,6 +4,7 @@ import Phaser from "phaser";
 import SelectScene from "../scenes/SelectScene";
 import MainGameScene from "../scenes/MainGameScene";
 import EndGameModal from "./EndGameModal";
+import { usePokemon } from "../contexts/PokemonContext";
 
 export default function Game() {
   const gameRef = useRef(null);
@@ -12,6 +13,7 @@ export default function Game() {
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [gameEndData, setGameEndData] = useState(null);
   const location = useLocation();
+  const { pokemonCollection } = usePokemon();
 
   useEffect(() => {
     try {
@@ -82,6 +84,9 @@ export default function Game() {
 
     const game = new Phaser.Game(config);
     gameRef.current = game;
+
+    // Add Pokemon collection to registry for Phaser scenes to access
+    game.registry.set('pokemonCollection', pokemonCollection);
 
     // Start the appropriate scene based on whether we came from lobby
     if (comingFromLobby) {

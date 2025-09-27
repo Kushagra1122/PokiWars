@@ -6,7 +6,7 @@ import minimalTokenABI from '../../consts/tokenabi.json';
 import PokemonCard from "@/components/PokimonCard";
 
 const POKI_NFT_ADDRESS = "0x2215a0ccaeb7949c80c9e71aaf54d8cf0993b5b7";
-const POKI_TOKEN_ADDRESS = "0xa599dac243deca9b35c57639dc1dfb1f3368e26b";
+const POKI_TOKEN_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483";
 
 const POLYGON_CONFIG = {
   chainId: '0x89',
@@ -228,13 +228,10 @@ export default function StarterAnimation() {
       const formattedBalance = ethers.utils.formatUnits(balance, decimals);
       setPokiTokenBalance(formattedBalance);
 
-      // Check if user needs tokens (balance is 0 or very low)
+      // Check if user has tokens for minting
       if (parseFloat(formattedBalance) === 0) {
-        console.log('🪙 No tokens detected. Redirecting to dashboard...');
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+        console.log('🪙 No tokens detected. User needs to get tokens first.');
+        // Don't redirect - let them see the warning message
       } else {
         console.log('✅ Balance is not 0:', formattedBalance);
       }
@@ -491,7 +488,14 @@ export default function StarterAnimation() {
         {/* No PKT tokens warning */}
         {userAddress && parseFloat(pokiTokenBalance) === 0 && (
           <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
-            <strong>⚠️ No PKT Tokens:</strong> You need PKT tokens to mint Pokémon. Redirecting to dashboard...
+            <strong>⚠️ No PKT Tokens:</strong> You need PKT tokens to mint Pokémon. Please go back to dashboard to get tokens.
+            <br />
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            >
+              Go to Dashboard
+            </button>
           </div>
         )}
 

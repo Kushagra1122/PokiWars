@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import tokenABI from '../consts/tokenabi.json';  // Import ABI JSON
 
-const POKI_TOKEN_ADDRESS = '0xa599dac243deca9b35c57639dc1dfb1f3368e26b';
+const POKI_TOKEN_ADDRESS = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
 
 export default function TokenBalance({ walletAddress }) {
     const [balance, setBalance] = useState(null);

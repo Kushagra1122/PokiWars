@@ -38,13 +38,12 @@ function Dashboard() {
     }
   }, [walletAddress, fetchNFTsForAddress]);
 
-    const handleMarketplaceClick = () => {
-        navigate('/market');
-    };
+  const handleMarketplaceClick = () => {
+    navigate('/market');
+  };
 
   const handleBattleClick = () => {
-    console.log('Start Battle');
-    // Add battle logic here
+    navigate('/battle')
   };
 
   const handleProfileClick = () => {
@@ -82,6 +81,8 @@ function Dashboard() {
 
   const pokemonSelect = (pokemon) => {
     updateMainPokemon(pokemon);
+    // Optional: Add a brief confirmation message
+    console.log(`Selected ${pokemon.name} as main Pokemon!`);
   };
 
   // Helper function to truncate wallet address
@@ -117,25 +118,25 @@ function Dashboard() {
           <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-200">
             <User className='size-8 text-white drop-shadow-lg' />
           </div>
-           {showProfileDropdown && (
-             <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
-               <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
-               <button
-                 onClick={handleMyProfileClick}
-                 className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded mb-2"
-               >
-                 My Profile
-               </button>
-               <button
-                 onClick={handleUnlinkWallet}
-                 className="w-full px-2 py-1 bg-red-600 hover:bg-red-700 rounded flex items-center justify-center gap-2"
-               >
-                 <LogOut className="w-4 h-4" />
-                 Unlink Wallet
-               </button>
-               <TokenBalance walletAddress={walletAddress} />
-             </div>
-           )}
+          {showProfileDropdown && (
+            <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
+              <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
+              <button
+                onClick={handleMyProfileClick}
+                className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded mb-2"
+              >
+                My Profile
+              </button>
+              <button
+                onClick={handleUnlinkWallet}
+                className="w-full px-2 py-1 bg-red-600 hover:bg-red-700 rounded flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Unlink Wallet
+              </button>
+              <TokenBalance walletAddress={walletAddress} />
+            </div>
+          )}
         </div>
 
         {/* Notifications Icon */}
@@ -188,10 +189,10 @@ function Dashboard() {
       <div className='max-h-96 z-10 bounce-animation mt-22 flex items-center justify-center'>
         {main && (
           <div className="relative">
-            <img 
-              src={main.main} 
-              alt="Character" 
-              className="max-w-md max-h-96 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
+            <img
+              src={main.main}
+              alt="Character"
+              className="max-w-md max-h-96 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white/10 rounded-lg"></div>
           </div>
@@ -224,24 +225,45 @@ function Dashboard() {
               <DrawerDescription className="text-gray-300 text-lg">
                 You'll take this Pokimon to battle
               </DrawerDescription>
+              {main && (
+                <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-yellow-400/30">
+                  <p className="text-yellow-400 font-semibold">Currently Selected:</p>
+                  <p className="text-white">{main.name} - Level {main.level}</p>
+                </div>
+              )}
             </DrawerHeader>
 
             <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
               <div className="flex justify-center gap-4 items-center flex-wrap max-w-6xl">
-                {pokemonCollection.map((pokemon, index) => (
-                  <div key={index} className="transform transition-all duration-200 hover:scale-105">
-                    <PokemonCard
-                      imageSrc={pokemon.img}
-                      name={pokemon.name}
-                      type={pokemon.type}
-                      attack={pokemon.attack}
-                      range={pokemon.range}
-                      exp={pokemon.exp}
-                      level={pokemon.level}
-                      onClick={() => pokemonSelect(pokemon)}
-                    />
-                  </div>
-                ))}
+                {pokemonCollection.map((pokemon, index) => {
+                  const isSelected = main && main.tokenId === pokemon.tokenId;
+                  return (
+                    <div 
+                      key={index} 
+                      className={`relative transform transition-all duration-200 hover:scale-105 ${
+                        isSelected ? 'ring-4 ring-yellow-400 ring-opacity-60 scale-105' : ''
+                      }`}
+                    >
+                      <div className={`${isSelected ? 'bg-yellow-400/10 rounded-lg p-2' : ''}`}>
+                        <PokemonCard
+                          imageSrc={pokemon.img}
+                          name={pokemon.name}
+                          type={pokemon.type}
+                          attack={pokemon.attack}
+                          range={pokemon.range}
+                          exp={pokemon.exp}
+                          level={pokemon.level}
+                          onClick={() => pokemonSelect(pokemon)}
+                        />
+                      </div>
+                      {isSelected && (
+                        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded-full">
+                          MAIN
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

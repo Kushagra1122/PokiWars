@@ -23,7 +23,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             {/* <Route path="/" element={<TestContract />} /> */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/battle" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/first" element={<StarterAnimation />} />

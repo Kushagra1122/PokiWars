@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
+import { usePokemon } from '../../contexts/PokemonContext';
 
 export default function CreateLobby() {
   const navigate = useNavigate();
+  const { main } = usePokemon();
   const [playerName, setPlayerName] = useState('');
   const [lobbySettings, setLobbySettings] = useState({
     map: { id: 'forest', name: 'Forest Map' },
@@ -105,6 +107,56 @@ export default function CreateLobby() {
               {error}
             </div>
           )}
+
+          {/* Selected Pokemon Display */}
+          <div className="bg-gray-700 rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-center">Your Selected Pokemon</h3>
+            {main ? (
+              <div className="flex items-center justify-center space-x-4">
+                <div className="text-center">
+                  <img
+                    src={main.main || main.img}
+                    alt={main.name}
+                    className="w-16 h-16 mx-auto mb-2 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <h4 className="font-semibold text-white">{main.name}</h4>
+                  <p className="text-sm text-gray-400 capitalize">{main.type}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-red-400 font-bold">{main.attack || 0}</div>
+                    <div className="text-gray-400">ATK</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-blue-400 font-bold">{main.defense || 0}</div>
+                    <div className="text-gray-400">DEF</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-bold">{main.speed || 0}</div>
+                    <div className="text-gray-400">SPD</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-purple-400 font-bold">{main.level || 1}</div>
+                    <div className="text-gray-400">LVL</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <div className="text-4xl mb-2">🎮</div>
+                <p className="text-gray-400 text-sm">No Pokemon selected</p>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                >
+                  Select Pokemon
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Player Setup */}

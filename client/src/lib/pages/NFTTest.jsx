@@ -5,7 +5,7 @@ import minimalTokenABI from '../../consts/tokenabi.json'; // Added token ABI
 import PokemonCard from "@/components/PokimonCard";
 
 const POKI_NFT_ADDRESS = "0x2215a0ccaeb7949c80c9e71aaf54d8cf0993b5b7";
-const POKI_TOKEN_ADDRESS = "0xa599dac243deca9b35c57639dc1dfb1f3368e26b";
+const POKI_TOKEN_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483";
 
 // Updated Polygon Mainnet configuration
 const POLYGON_CONFIG = {

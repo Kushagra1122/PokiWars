@@ -1,4 +1,3 @@
-import { usePokemon } from "@/contexts/PokemonContext";
 import Phaser from "phaser";
 
 export default class SelectScene extends Phaser.Scene {
@@ -11,8 +10,8 @@ export default class SelectScene extends Phaser.Scene {
   }
 
   loadCharacterAssets() {
-    // Get pokemonCollection from context
-    const { pokemonCollection } = usePokemon();
+    // Get pokemonCollection from registry (passed from React component)
+    const pokemonCollection = this.registry.get('pokemonCollection') || [];
     
     if (!pokemonCollection || pokemonCollection.length === 0) {
       console.warn("No pokemon collection available");
@@ -29,7 +28,7 @@ export default class SelectScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    const { pokemonCollection } = usePokemon();
+    const pokemonCollection = this.registry.get('pokemonCollection') || [];
 
     const graphics = this.add.graphics();
     graphics.fillGradientStyle(0x1a1a2e, 0x16213e, 0x0f3460, 0x533483);

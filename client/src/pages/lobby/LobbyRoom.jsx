@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
 import StakingPanel from '../../components/StakingPanel';
 import { useUser } from '../../contexts/UserContext';
+import { usePokemon } from '../../contexts/PokemonContext';
 
 export default function LobbyRoom() {
   const { lobbyId } = useParams();
   const navigate = useNavigate();
   const { walletAddress } = useUser();
+  const { main } = usePokemon();
   
   const [lobby, setLobby] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -342,6 +344,64 @@ export default function LobbyRoom() {
             <p className="text-sm text-gray-400">Lobby ID: {lobby.id}</p>
             <p className="text-sm text-gray-400">
               Status: <span className="text-green-400">{lobby.status}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Selected Pokemon Display */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-center">Your Selected Pokemon</h2>
+          {main ? (
+            <div className="flex items-center justify-center space-x-6">
+              <div className="text-center">
+                <img
+                  src={main.main || main.img}
+                  alt={main.name}
+                  className="w-24 h-24 mx-auto mb-2 object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <h3 className="text-lg font-semibold text-white">{main.name}</h3>
+                <p className="text-sm text-gray-400 capitalize">{main.type}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="text-red-400 font-bold text-lg">{main.attack || 0}</div>
+                  <div className="text-gray-400">Attack</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-blue-400 font-bold text-lg">{main.defense || 0}</div>
+                  <div className="text-gray-400">Defense</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-green-400 font-bold text-lg">{main.speed || 0}</div>
+                  <div className="text-gray-400">Speed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-purple-400 font-bold text-lg">{main.level || 1}</div>
+                  <div className="text-gray-400">Level</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4">🎮</div>
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">No Pokemon Selected</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Go to your dashboard to select a Pokemon for battle
+              </p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          )}
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-400">
+              {main ? 'This Pokemon will be used in battle' : 'Select a Pokemon to participate in battles'}
             </p>
           </div>
         </div>
