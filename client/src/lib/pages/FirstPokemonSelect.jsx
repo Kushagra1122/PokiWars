@@ -25,52 +25,103 @@ const pokemonList = [
     id: 1,
     name: "Blastoise",
     type: "Water",
-    attack: 84,
-    range: 2,
+    attack: 10,
+    range: 12,
     exp: 0,
     level: 1,
-    img: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/BLASTOISE%20(1).png",
-    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/BLASTOISE%20(1).png",
+    img: "./blast.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/blastoise-thumbnail.png",
     xp: 0,
-    health: 79,
+    health: 100,
     defense: 100,
-    speed: 78,
-    radius: 15,
+    speed: 8,
+    radius: 0,
     specialTrait: 1,
   },
   {
     id: 2,
-    name: "Gengar",
-    type: "Ghost",
-    attack: 65,
-    range: 3,
+    name: "Charizard",
+    type: "Fire",
+    attack: 12,
+    range: 10,
     exp: 0,
     level: 1,
-    img: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/GENGAR%20(1).png",
-    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/GENGAR%20(1).png",
+    img: "./chariz.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/chariz-thumbnail.png",
     xp: 0,
-    health: 60,
-    defense: 60,
-    speed: 110,
-    radius: 14,
-    specialTrait: 2,
+    health: 100,
+    defense: 100,
+    speed: 7,
+    radius: 0,
+    specialTrait: 1,
   },
   {
     id: 3,
-    name: "Alakazam",
-    type: "Psychic",
-    attack: 50,
-    range: 3,
+    name: "Venusaur",
+    type: "Grass",
+    attack: 8,
+    range: 14,
     exp: 0,
     level: 1,
-    img: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/ALAKAZAM%20(1).png",
-    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/ALAKAZAM%20(1).png",
+    img: "./venu.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/venu-thumbnail.png",
     xp: 0,
-    health: 55,
-    defense: 45,
-    speed: 120,
-    radius: 13,
-    specialTrait: 3,
+    health: 100,
+    defense: 100,
+    speed: 6,
+    radius: 0,
+    specialTrait: 1,
+  },
+  {
+    id: 4,
+    name: "Gengar",
+    type: "Ghost",
+    attack: 8,
+    range: 14,
+    exp: 0,
+    level: 1,
+    img: "./gengar-dash.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/geng-thumb.jpg",
+    xp: 0,
+    health: 100,
+    defense: 100,
+    speed: 10,
+    radius: 0,
+    specialTrait: 1,
+  },
+  {
+    id: 5,
+    name: "Alakazam",
+    type: "Psychic",
+    attack: 7,
+    range: 11,
+    exp: 0,
+    level: 1,
+    img: "./alakazam-dash.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/alak-thum.jpg",
+    xp: 0,
+    health: 100,
+    defense: 100,
+    speed: 9,
+    radius: 0,
+    specialTrait: 1,
+  },
+  {
+    id: 6,
+    name: "Snorlax",
+    type: "Normal",
+    attack: 15,
+    range: 8,
+    exp: 0,
+    level: 1,
+    img: "./Snorlax-dash.png",
+    metadataURI: "https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/snor-thumb.jpg",
+    xp: 0,
+    health: 100,
+    defense: 100,
+    speed: 4,
+    radius: 0,
+    specialTrait: 1,
   },
 ];
 
@@ -436,117 +487,143 @@ export default function StarterAnimation() {
   };
 
   return (
-    <div className="bg-black min-h-screen w-full flex flex-col justify-center items-center font-pixelify text-white p-4">
-      {!userAddress ? (
-        <button
-          className="mb-6 bg-green-600 px-6 py-3 rounded font-bold hover:bg-green-700 transition-colors"
-          onClick={connectWallet}
-          disabled={loading}
-        >
-          {loading ? "Connecting..." : "Connect Wallet"}
-        </button>
-      ) : (
-        <div className="mb-6 text-center space-y-2">
-          <div className="font-bold">
-            Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+    <div className="bg-black min-h-screen w-full flex flex-col justify-center items-center font-pixelify text-white p-4 relative">
+
+      {/* Background image for this page  */}
+      <div className="absolute top-0 left-0 w-full h-full z-0">
+        <img
+          src="./onBoarding.png"
+          alt="bg-img"
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* All content with higher z-index */}
+      <div className="relative z-10 flex flex-col justify-center items-center w-full">
+        {!userAddress ? (
+          <button
+            className="mb-6 bg-green-600 px-6 py-3 rounded font-bold hover:bg-green-700 transition-colors"
+            onClick={connectWallet}
+            disabled={loading}
+          >
+            {loading ? "Connecting..." : "Connect Wallet"}
+          </button>
+        ) : (
+          <div className="mb-6 text-center space-y-2">
+            <div className="font-bold bg-black/60 rounded-3xl">
+              Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+            </div>
+            <div className="bg-black/60 px-5 rounded-3xl text-sm text-green-400">
+              PKT Balance: {pokiTokenBalance} | Allowance: {allowance} | MATIC: {polBalance}
+            </div>
+            <div className="bg-black/60 rounded-3xl text-sm">
+              Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Amoy ✅" : "Wrong Network ⚠️"}
+            </div>
+            {!isCorrectNetwork && (
+              <button
+                onClick={switchToPolygonAmoy}
+                className="bg-yellow-600 px-4 py-2 rounded text-sm hover:bg-yellow-700 transition-colors"
+              >
+                Switch to Polygon Amoy
+              </button>
+            )}
           </div>
-          <div className="text-sm text-green-400">
-            PKT Balance: {pokiTokenBalance} | Allowance: {allowance} | MATIC: {polBalance}
+        )}
+
+        {/* Network warning */}
+        {!isCorrectNetwork && userAddress && (
+          <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
+            <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Amoy Testnet
           </div>
-          <div className="text-sm">
-            Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Amoy ✅" : "Wrong Network ⚠️"}
+        )}
+
+        {/* MATIC Balance warning */}
+        {userAddress && parseFloat(polBalance) < 0.01 && (
+          <div className="bg-red-600 p-3 rounded-lg mb-4 text-center">
+            <strong>⚠️ Low MATIC Balance:</strong> You need MATIC for gas fees.
           </div>
-          {!isCorrectNetwork && (
-            <button
-              onClick={switchToPolygonAmoy}
-              className="bg-yellow-600 px-4 py-2 rounded text-sm hover:bg-yellow-700 transition-colors"
-            >
-              Switch to Polygon Amoy
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* Network warning */}
-      {!isCorrectNetwork && userAddress && (
-        <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
-          <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Amoy Testnet
-        </div>
-      )}
+        {/* Approve button */}
+        {userAddress && parseFloat(allowance) < parseFloat(mintCost) && (
+          <button
+            onClick={approveTokens}
+            disabled={loading || parseFloat(polBalance) < 0.01}
+            className="mb-4 bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
+          >
+            {loading ? "Approving..." : `Approve ${mintCost} PKT`}
+          </button>
+        )}
 
-      {/* MATIC Balance warning */}
-      {userAddress && parseFloat(polBalance) < 0.01 && (
-        <div className="bg-red-600 p-3 rounded-lg mb-4 text-center">
-          <strong>⚠️ Low MATIC Balance:</strong> You need MATIC for gas fees.
-        </div>
-      )}
+        <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
 
-      {/* Request tokens button - show if balance is 0 or very low */}
-      {userAddress && parseFloat(pokiTokenBalance) === 0 && (
-        <button
-          onClick={() => requestTokens(userAddress)}
-          disabled={isRequestingTokens}
-          className="mb-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
-        >
-          {isRequestingTokens ? "Requesting Tokens..." : "Request 500 PKT Tokens"}
-        </button>
-      )}
+        {/* Request tokens button - show if balance is 0 or very low */}
+        {userAddress && parseFloat(pokiTokenBalance) === 0 && (
+          <button
+            onClick={() => requestTokens(userAddress)}
+            disabled={isRequestingTokens}
+            className="mb-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
+          >
+            {isRequestingTokens ? "Requesting Tokens..." : "Request 500 PKT Tokens"}
+          </button>
+        )}
 
-      {/* Approve button */}
-      {userAddress && parseFloat(allowance) < parseFloat(mintCost) && parseFloat(pokiTokenBalance) > 0 && (
-        <button
-          onClick={approveTokens}
-          disabled={loading || parseFloat(polBalance) < 0.01}
-          className="mb-4 bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
-        >
-          {loading ? "Approving..." : `Approve ${mintCost} PKT`}
-        </button>
-      )}
+        {/* Approve button */}
+        {userAddress && parseFloat(allowance) < parseFloat(mintCost) && parseFloat(pokiTokenBalance) > 0 && (
+          <button
+            onClick={approveTokens}
+            disabled={loading || parseFloat(polBalance) < 0.01}
+            className="mb-4 bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
+          >
+            {loading ? "Approving..." : `Approve ${mintCost} PKT`}
+          </button>
+        )}
 
-      <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
+        <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
 
-      {/* Status message */}
-      {status && (
-        <div
-          className={`mb-4 p-3 rounded text-center ${status.includes("✅") || status.includes("🎉")
+        {/* Status message */}
+        {status && (
+          <div
+            className={`mb-4 p-3 rounded text-center ${status.includes("✅") || status.includes("🎉")
               ? "bg-green-800"
               : status.includes("❌")
                 ? "bg-red-800"
                 : "bg-blue-800"
-            }`}
-        >
-          {status}
+              }`}
+          >
+            {status}
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-center items-center gap-8">
+          {pokemonList.map((pokemon, index) => (
+            <PokemonCard
+              key={index}
+              imageSrc={pokemon.img}
+              name={pokemon.name}
+              type={pokemon.type}
+              attack={pokemon.attack}
+              range={pokemon.range}
+              exp={pokemon.exp}
+              level={pokemon.level}
+              onClick={() => handleSelect(pokemon)}
+              disabled={loading || !userAddress || parseFloat(allowance) < parseFloat(mintCost) || parseFloat(polBalance) < 0.01}
+            />
+          ))}
         </div>
-      )}
 
-      <div className="flex flex-wrap justify-center items-center gap-8 max-w-6xl">
-        {pokemonList.map((pokemon, index) => (
-          <PokemonCard
-            key={index}
-            imageSrc={pokemon.img}
-            name={pokemon.name}
-            type={pokemon.type}
-            attack={pokemon.attack}
-            range={pokemon.range}
-            exp={pokemon.exp}
-            level={pokemon.level}
-            onClick={() => handleSelect(pokemon)}
-            disabled={loading || !userAddress || parseFloat(allowance) < parseFloat(mintCost) || parseFloat(polBalance) < 0.01}
-          />
-        ))}
-      </div>
+        {loading && (
+          <div className="mt-4 flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <p>Processing transaction...</p>
+          </div>
+        )}
 
-      {loading && (
-        <div className="mt-4 flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <p>Processing transaction...</p>
+        {/* Instructions */}
+        <div className="mt-8 text-center text-sm text-gray-400 max-w-2xl">
+          <p>Make sure you're on Polygon Amoy Testnet and have test MATIC for gas fees.</p>
+          <p>You'll need PKT tokens and approval before minting Pokémon NFTs.</p>
         </div>
-      )}
-
-      {/* Instructions */}
-      <div className="mt-8 text-center text-sm text-gray-400 max-w-2xl">
-        <p>Make sure you're on Polygon Amoy Testnet and have test MATIC for gas fees.</p>
-        <p>You'll need PKT tokens and approval before minting Pokémon NFTs.</p>
       </div>
     </div>
   );

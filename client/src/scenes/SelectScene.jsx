@@ -1,3 +1,4 @@
+import { usePokemon } from "@/contexts/PokemonContext";
 import Phaser from "phaser";
 
 export default class SelectScene extends Phaser.Scene {
@@ -10,14 +11,25 @@ export default class SelectScene extends Phaser.Scene {
   }
 
   loadCharacterAssets() {
-    // Load the character images using proper import paths
-    this.load.image('ALAKAZAM', 'src/assets/characters/ALAKAZAM.png');
-    this.load.image('BLASTOISE', 'src/assets/characters/BLASTOISE.png');
-    this.load.image('CHARIZARD', 'src/assets/characters/CHARIZARD.png');
+    // Get pokemonCollection from context
+    const { pokemonCollection } = usePokemon();
+    
+    if (!pokemonCollection || pokemonCollection.length === 0) {
+      console.warn("No pokemon collection available");
+      return;
+    }
+
+    // Load character images from pokemonCollection
+    pokemonCollection.forEach(pokemon => {
+      if (pokemon.name && pokemon.image) {
+        this.load.image(pokemon.name, pokemon.image);
+      }
+    });
   }
 
   create() {
     const { width, height } = this.scale;
+    const { pokemonCollection } = usePokemon();
 
     const graphics = this.add.graphics();
     graphics.fillGradientStyle(0x1a1a2e, 0x16213e, 0x0f3460, 0x533483);
@@ -42,15 +54,20 @@ export default class SelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const characters = [
-      { name: "ALAKAZAM", color: "#9966cc" },
-      { name: "BLASTOISE", color: "#4488cc" },
-      { name: "CHARIZARD", color: "#ff6644" },
-    ];
+    // Create characters array from pokemonCollection
+    const characters = pokemonCollection.map(pokemon => ({
+      name: pokemon.name,
+      color: this.getColorForPokemon(pokemon.name) // You can customize this
+    }));
+
+    if (characters.length === 0) {
+      this.showNoPokemonMessage();
+      return;
+    }
 
     const startY = height * 0.4;
     const spacing = 120;
-    const selectedChar = this.registry.get("selectedCharacter") || "ALAKAZAM";
+    const selectedChar = this.registry.get("selectedCharacter") || characters[0].name;
     this.selectedCharacter = selectedChar;
 
     this.characterButtons = [];
@@ -177,6 +194,30 @@ export default class SelectScene extends Phaser.Scene {
     });
   }
 
+  getColorForPokemon(pokemonName) {
+    // Customize colors based on pokemon type or name
+    const colorMap = {
+      'ALAKAZAM': '#9966cc',
+      'BLASTOISE': '#4488cc', 
+      'CHARIZARD': '#ff6644'
+      // Add more mappings as needed
+    };
+    
+    return colorMap[pokemonName] || '#ffffff'; // Default to white if not found
+  }
+
+  showNoPokemonMessage() {
+    const { width, height } = this.scale;
+    
+    this.add
+      .text(width / 2, height / 2, "No Pokémon available\nPlease check your collection", {
+        fontSize: "24px",
+        color: "#ff4444",
+        align: "center",
+      })
+      .setOrigin(0.5);
+  }
+
   selectCharacter(characterName, index) {
     this.selectedCharacter = characterName;
     this.registry.set("selectedCharacter", characterName);
@@ -213,6 +254,8 @@ export default class SelectScene extends Phaser.Scene {
   }
 
   navigateCharacter(direction) {
+    if (this.characterButtons.length === 0) return;
+    
     const currentIndex = this.characterButtons.findIndex(
       (btn) => btn.char === this.selectedCharacter
     );
@@ -226,6 +269,11 @@ export default class SelectScene extends Phaser.Scene {
   }
 
   startGame() {
+    if (!this.selectedCharacter) {
+      console.warn("No character selected");
+      return;
+    }
+
     this.cameras.main.fadeOut(300, 0, 0, 0);
 
     this.cameras.main.once("camerafadeoutcomplete", () => {
