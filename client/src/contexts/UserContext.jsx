@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { ethers } from 'ethers'
+import tokenABI from '@/consts/tokenabi.json'
+
+const POKI_TOKEN_ADDRESS = '0x5b2df7670561258b41339d464fa277396102802a';
 
 const UserContext = createContext()
 
@@ -15,6 +19,40 @@ export const UserProvider = ({ children }) => {
   const [username, setUsername] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [tokenBalance, setTokenBalance] = useState(null)
+  const [balanceError, setBalanceError] = useState(null)
+
+  // Function to fetch token balance
+  const fetchTokenBalance = async (address) => {
+    setBalanceError(null)
+    setTokenBalance(null)
+
+    if (!address || !ethers.utils.isAddress(address)) {
+      setBalanceError('Invalid wallet address')
+      return
+    }
+
+    try {
+      const provider = new ethers.providers.JsonRpcProvider("https://rpc-amoy.polygon.technology")
+      const contract = new ethers.Contract(POKI_TOKEN_ADDRESS, tokenABI, provider)
+
+      const rawBalance = await contract.balanceOf(address)
+
+      // Try to get decimals, fallback to 18 if not available
+      let decimals = 18
+      try {
+        decimals = await contract.decimals()
+      } catch (decErr) {
+        console.warn('Error fetching decimals, defaulting to 18')
+      }
+
+      const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals)
+      setTokenBalance(formattedBalance)
+    } catch (err) {
+      setBalanceError(`Failed to fetch token balance: ${err.message || err}`)
+      console.error('Token balance error:', err)
+    }
+  }
 
   // Check for existing user session on mount
   useEffect(() => {
@@ -36,6 +74,9 @@ export const UserProvider = ({ children }) => {
             if (data && !error) {
               setUsername(data.name)
             }
+            
+            // Fetch token balance for the connected wallet
+            fetchTokenBalance(address)
           }
         }
       } catch (error) {
@@ -58,8 +99,10 @@ export const UserProvider = ({ children }) => {
           setWalletAddress('')
         } else {
           // User switched accounts
-          setWalletAddress(accounts[0])
-          // You might want to fetch the new user's data here
+          const newAddress = accounts[0]
+          setWalletAddress(newAddress)
+          // Fetch token balance for the new account
+          fetchTokenBalance(newAddress)
         }
       }
 
@@ -82,15 +125,20 @@ export const UserProvider = ({ children }) => {
   const clearUser = () => {
     setUsername('')
     setWalletAddress('')
+    setTokenBalance(null)
+    setBalanceError(null)
   }
 
   const value = {
     username,
     walletAddress,
     isLoading,
+    tokenBalance,
+    balanceError,
     updateUsername,
     updateWalletAddress,
-    clearUser
+    clearUser,
+    fetchTokenBalance
   }
 
   return (

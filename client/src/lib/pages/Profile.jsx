@@ -1,24 +1,27 @@
 import PokemonCard from '@/components/PokimonCard';
 import { Button } from '@/components/ui/8bit/button';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usePokemon } from '@/contexts/PokemonContext';
+import { useUser } from '@/contexts/UserContext';
 
 const Profile = () => {
-  const [username, setUsername] = useState('Player1');
+  const navigate = useNavigate();
+  const { pokemonCollection, fetchNFTsForAddress } = usePokemon();
+  const { username, walletAddress, clearUser, tokenBalance, balanceError } = useUser();
+  
   const [noOfFriends, setNoOfFriends] = useState(69);
-  const [amount, setAmount] = useState(11999);
   const [totalBot, setTotalBot] = useState(42);
   const [kills, setKills] = useState(127);
   const [won, setWon] = useState(23);
   const [kd, setKd] = useState('2.8');
 
-  const samplePokemon = [
-    { name: "Pikachu", type: "Electric", attack: 75, range: 4, exp: 85, level: 12, img: './venu-thumbnail.png', main: './venu.png' },
-    { name: "Charizard", type: "Fire", attack: 95, range: 5, exp: 45, level: 18, img: './blastoise-thumbnail.png', main: './blast.png' },
-    { name: "Blastoise", type: "Water", attack: 80, range: 3, exp: 90, level: 15, img: './chariz-thumbnail.png', main: './chariz.png' },
-    { name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img: './venu-thumbnail.png', main: './venu.png' },
-    { name: "Alakazam", type: "Psychic", attack: 70, range: 6, exp: 65, level: 20, img: './blastoise-thumbnail.png', main: './blast.png' },
-    { name: "Machamp", type: "Fighting", attack: 100, range: 2, exp: 10, level: 14, img: './chariz-thumbnail.png', main: './chariz.png' }
-  ];
+  // Fetch NFTs when component mounts or wallet address changes
+  useEffect(() => {
+    if (walletAddress) {
+      fetchNFTsForAddress(walletAddress);
+    }
+  }, [walletAddress, fetchNFTsForAddress]);
 
   const StatCard = ({ label, value, color = 'green' }) => {
     const colorClasses = {
@@ -40,7 +43,8 @@ const Profile = () => {
   };
 
   const HandleLogout = () => {
-    // Logout logic here
+    clearUser();
+    navigate('/');
   };
 
   return (
@@ -53,13 +57,13 @@ const Profile = () => {
           </div>
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-          username:<div>{username}</div>
+          username:<div>{username || 'Player1'}</div>
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
           ttl friends: {noOfFriends}
         </div>
         <div className="flex gap-2 justify-center items-center font-pixelify text-xl">
-          amount: {amount}
+          amount: {balanceError ? 'Error' : tokenBalance !== null ? parseFloat(tokenBalance).toFixed(2) : 'Loading...'}
         </div>
       </div>
 
@@ -73,6 +77,11 @@ const Profile = () => {
             <StatCard label="Kills" value={kills} color="red" />
             <StatCard label="Wins" value={won} color="blue" />
             <StatCard label="K/D" value={kd} color="yellow" />
+            <StatCard 
+              label="Poki Tokens" 
+              value={balanceError ? 'Error' : tokenBalance !== null ? parseFloat(tokenBalance).toFixed(2) : 'Loading...'} 
+              color="green" 
+            />
           </div>
 
           {/* Spacer to push button to bottom */}
@@ -93,21 +102,26 @@ const Profile = () => {
         <div className="h-130 w-full border-4 bg-white/10 p-4 shadow-[0_0_15px_#8b5cf6] flex flex-col">
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-3 gap-2">
-              {samplePokemon.map((pokemon, index) => (
-                <div className='scale-95'>
-                  <PokemonCard
-                    imageSrc={pokemon.img}
-                    key={index}
-                    name={pokemon.name}
-                    type={pokemon.type}
-                    attack={pokemon.attack}
-                    range={pokemon.range}
-                    exp={pokemon.exp}
-                    level={pokemon.level}
-                  // onClick={()=>pokemonSelect(pokemon)}
-                  />
+              {pokemonCollection.length > 0 ? (
+                pokemonCollection.map((pokemon, index) => (
+                  <div className='scale-95' key={pokemon.tokenId || index}>
+                    <PokemonCard
+                      imageSrc={pokemon.img}
+                      name={pokemon.name}
+                      type={pokemon.type}
+                      attack={pokemon.attack}
+                      range={pokemon.range}
+                      exp={pokemon.exp}
+                      level={pokemon.level}
+                    // onClick={()=>pokemonSelect(pokemon)}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center text-gray-400 font-pixelify text-lg py-8">
+                  No Pokemon found. Connect your wallet to view your collection.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
