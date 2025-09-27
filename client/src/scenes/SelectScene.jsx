@@ -66,7 +66,11 @@ export default class SelectScene extends Phaser.Scene {
 
     const startY = height * 0.4;
     const spacing = 120;
-    const selectedChar = this.registry.get("selectedCharacter") || characters[0].name;
+    
+    // Get the main Pokemon from registry (selected in dashboard)
+    const mainPokemon = this.registry.get("mainPokemon");
+    const selectedChar = this.registry.get("selectedCharacter") || 
+                        (mainPokemon ? mainPokemon.name : characters[0].name);
     this.selectedCharacter = selectedChar;
 
     this.characterButtons = [];

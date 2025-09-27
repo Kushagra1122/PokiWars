@@ -13,7 +13,7 @@ export default function Game() {
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [gameEndData, setGameEndData] = useState(null);
   const location = useLocation();
-  const { pokemonCollection } = usePokemon();
+  const { pokemonCollection, main } = usePokemon();
 
   useEffect(() => {
     try {
@@ -85,11 +85,16 @@ export default function Game() {
     const game = new Phaser.Game(config);
     gameRef.current = game;
 
-    // Add Pokemon collection to registry for Phaser scenes to access
+    // Add Pokemon collection and main Pokemon to registry for Phaser scenes to access
     game.registry.set('pokemonCollection', pokemonCollection);
+    game.registry.set('mainPokemon', main);
 
     // Start the appropriate scene based on whether we came from lobby
     if (comingFromLobby) {
+      // Set the selected character to the main Pokemon when coming from lobby
+      if (main) {
+        game.registry.set("selectedCharacter", main.name);
+      }
       // Skip character selection and go directly to main game
       game.scene.start("mainGame");
     }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import minimalNFTABI from "../consts/nftabi.json";
 
@@ -39,7 +39,7 @@ export const PokemonProvider = ({ children }) => {
   });
   const [pokemonCollection, setPokemonCollection] = useState([]);
 
-  async function fetchNFTsForAddress(address) {
+  const fetchNFTsForAddress = useCallback(async (address) => {
     if (!address) return;
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -119,13 +119,16 @@ export const PokemonProvider = ({ children }) => {
       }
 
       setPokemonCollection(nfts);
-      if (nfts.length > 0) setMain(nfts[0]);
+      // Only set main to first NFT if no main is currently selected
+      if (nfts.length > 0 && !main) {
+        setMain(nfts[0]);
+      }
     } catch (error) {
       console.error("Error fetching NFTs:", error);
       setPokemonCollection([]);
       setMain(null);
     }
-  }
+  }, []); // No dependencies needed
 
   const updateMainPokemon = (pokemon) => {
     setMain(pokemon);

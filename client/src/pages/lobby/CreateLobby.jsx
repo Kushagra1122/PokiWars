@@ -2,19 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
 import { usePokemon } from '../../contexts/PokemonContext';
+import { useUser } from '../../contexts/UserContext';
 
 export default function CreateLobby() {
   const navigate = useNavigate();
   const { main } = usePokemon();
-  const [playerName, setPlayerName] = useState('');
+  const { username } = useUser();
   const [lobbySettings, setLobbySettings] = useState({
     map: { id: 'forest', name: 'Forest Map' },
     timeLimit: 15,
     isRated: false,
-    stake: 10,
-    maxPlayers: 4,
-    isPrivate: false,
-    password: ''
+    maxPlayers: 4
   });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
@@ -28,11 +26,10 @@ export default function CreateLobby() {
   ];
 
   const timeOptions = [5, 10, 15, 20, 30, 60];
-  const stakeOptions = [10, 25, 50, 100, 250, 500, 1000];
 
   const handleCreateLobby = async () => {
-    if (!playerName.trim()) {
-      setError('Please enter your name');
+    if (!username) {
+      setError('Please connect your wallet first');
       return;
     }
     setIsCreating(true);
@@ -42,7 +39,7 @@ export default function CreateLobby() {
       await socketManager.connect();
 
       const playerInfo = {
-        name: playerName.trim()
+        name: username
       };
 
       // Create lobby with player info and settings
@@ -52,10 +49,8 @@ export default function CreateLobby() {
           map: lobbySettings.map,
           timeLimit: lobbySettings.timeLimit,
           isRated: lobbySettings.isRated,
-          stake: lobbySettings.stake,
-          maxPlayers: lobbySettings.maxPlayers,
-          isPrivate: lobbySettings.isPrivate,
-          password: lobbySettings.password
+          stake: 10, // Fixed at 10 PKT
+          maxPlayers: lobbySettings.maxPlayers
         }
       };
 
@@ -159,20 +154,15 @@ export default function CreateLobby() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Player Setup */}
+            {/* Player Info */}
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="Enter your name"
-                  maxLength={20}
-                />
+              <div className="bg-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-2">Player Info</h3>
+                <p className="text-gray-300">Name: <span className="text-white font-semibold">{username || 'Not connected'}</span></p>
+                {!username && (
+                  <p className="text-red-400 text-sm mt-2">Please connect your wallet to create a lobby</p>
+                )}
               </div>
-
             </div>
 
             {/* Lobby Settings */}
@@ -230,50 +220,15 @@ export default function CreateLobby() {
                     onChange={(e) => setLobbySettings(prev => ({ ...prev, isRated: e.target.checked }))}
                     className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
                   />
-                  <span className="ml-2">Rated Match</span>
+                  <span className="ml-2">Rated Match (10 PKT stake required)</span>
                 </label>
               </div>
 
               {lobbySettings.isRated && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Stake Amount</label>
-                  <select
-                    value={lobbySettings.stake}
-                    onChange={(e) => setLobbySettings(prev => ({ ...prev, stake: parseInt(e.target.value) }))}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
-                  >
-                    {stakeOptions.map((stake) => (
-                      <option key={stake} value={stake}>
-                        {stake} coins
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={lobbySettings.isPrivate}
-                    onChange={(e) => setLobbySettings(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2">Private Lobby</span>
-                </label>
-              </div>
-
-              {lobbySettings.isPrivate && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Password (optional)</label>
-                  <input
-                    type="text"
-                    value={lobbySettings.password}
-                    onChange={(e) => setLobbySettings(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
-                    placeholder="Leave empty for no password"
-                    maxLength={20}
-                  />
+                <div className="bg-yellow-600/20 border border-yellow-600/50 rounded-lg p-3">
+                  <p className="text-yellow-200 text-sm">
+                    ⚠️ Rated matches require all players to stake 10 PKT tokens. Winners will receive 50-30-20% of the total pool.
+                  </p>
                 </div>
               )}
             </div>
@@ -282,8 +237,8 @@ export default function CreateLobby() {
           <div className="mt-8 text-center">
             <button
               onClick={handleCreateLobby}
-              disabled={isCreating || !playerName.trim()}
-              className={`px-8 py-4 rounded-lg text-lg font-semibold transition-colors ${isCreating || !playerName.trim()
+              disabled={isCreating || !username}
+              className={`px-8 py-4 rounded-lg text-lg font-semibold transition-colors ${isCreating || !username
                 ? 'bg-gray-600 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700'
                 }`}

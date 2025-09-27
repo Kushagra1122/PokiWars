@@ -236,8 +236,13 @@ export default function LobbyRoom() {
 
   const handleStakeSuccess = (result) => {
     console.log('Staking successful:', result);
+    console.log('Adding walletAddress to stakedPlayers:', walletAddress);
     // Add player to staked players set
-    setStakedPlayers(prev => new Set([...prev, walletAddress]));
+    setStakedPlayers(prev => {
+      const newSet = new Set([...prev, walletAddress]);
+      console.log('Updated stakedPlayers:', Array.from(newSet));
+      return newSet;
+    });
     setError(''); // Clear any previous errors
   };
 
@@ -415,6 +420,8 @@ export default function LobbyRoom() {
                 userAddress={walletAddress}
                 onStakeSuccess={handleStakeSuccess}
                 onStakeError={handleStakeError}
+                lobby={lobby}
+                stakedPlayers={stakedPlayers}
               />
             )}
             
