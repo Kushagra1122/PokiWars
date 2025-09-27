@@ -21,22 +21,8 @@ contract PokiNFT is ERC721Enumerable, Ownable {
         uint256 specialTrait;
     }
 
-    struct PokemonModel {
-        string name;
-        string metadataURI; // IPFS JSON URI with image and descriptive data
-        uint256 baseHealth;
-        uint256 baseAttack;
-        uint256 baseDefense;
-        uint256 baseSpeed;
-        uint256 baseRadius;
-        uint256 specialTrait;
-        bool exists;
-    }
-
     mapping(uint256 => NFTAttributes) private _attributes;
     mapping(uint256 => string) private _tokenURIs;
-    mapping(uint256 => uint256) public tokenToModel;
-    mapping(uint256 => PokemonModel) public pokemonModels;
 
     IPokiToken public pokiToken;
 
@@ -50,36 +36,36 @@ contract PokiNFT is ERC721Enumerable, Ownable {
         pokiToken = IPokiToken(_pokiTokenAddress);
     }
 
-    // Add Pokémon model data by owner
-    function addPokemonModel(
-        uint256 modelId,
-        string memory name,
+    // Implement required _baseURI override to fix abstract contract error
+    function _baseURI() internal view virtual override returns (string memory) {
+        return "";
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override(ERC721Enumerable) {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+
+    // Mint NFT with full dynamic attributes and metadata URI
+    function mintNFT(
+        address to,
+        uint256 tokenId,
         string memory metadataURI,
+        uint256 level,
+        uint256 xp,
         uint256 health,
         uint256 attack,
         uint256 defense,
         uint256 speed,
         uint256 radius,
         uint256 specialTrait
-    ) external onlyOwner {
-        require(!pokemonModels[modelId].exists, "Model already exists");
-        pokemonModels[modelId] = PokemonModel({
-            name: name,
-            metadataURI: metadataURI,
-            baseHealth: health,
-            baseAttack: attack,
-            baseDefense: defense,
-            baseSpeed: speed,
-            baseRadius: radius,
-            specialTrait: specialTrait,
-            exists: true
-        });
-    }
-
-    // Mint NFT with PokiToken payment and base model stats
-    function mintNFT(address to, uint256 tokenId, uint256 modelId) external {
+    ) external {
         require(!_exists(tokenId), "Token already minted");
-        require(pokemonModels[modelId].exists, "Invalid modelId");
 
         // Transfer PokiTokens from sender to owner to pay mint cost
         require(
@@ -88,23 +74,20 @@ contract PokiNFT is ERC721Enumerable, Ownable {
         );
 
         _safeMint(to, tokenId);
-        tokenToModel[tokenId] = modelId;
 
-        PokemonModel memory model = pokemonModels[modelId];
-
-        // Initialize NFT attributes from model base stats
+        // Initialize NFT attributes from input
         _attributes[tokenId] = NFTAttributes({
-            level: 1,
-            xp: 0,
-            health: model.baseHealth,
-            attack: model.baseAttack,
-            defense: model.baseDefense,
-            speed: model.baseSpeed,
-            radius: model.baseRadius,
-            specialTrait: model.specialTrait
+            level: level,
+            xp: xp,
+            health: health,
+            attack: attack,
+            defense: defense,
+            speed: speed,
+            radius: radius,
+            specialTrait: specialTrait
         });
 
-        _tokenURIs[tokenId] = model.metadataURI;
+        _tokenURIs[tokenId] = metadataURI;
 
         emit NFTMinted(to, tokenId);
     }
@@ -134,12 +117,12 @@ contract PokiNFT is ERC721Enumerable, Ownable {
         NFTAttributes storage attr = _attributes[tokenId];
         attr.level = newLevel;
 
-        // Increase stats by 10% on level up
-        attr.health = (attr.health * 110) / 100;
-        attr.attack = (attr.attack * 110) / 100;
-        attr.defense = (attr.defense * 110) / 100;
-        attr.speed = (attr.speed * 110) / 100;
-        attr.radius = (attr.radius * 110) / 100;
+        // Increase stats by 5% on level up
+        attr.health = (attr.health * 105) / 100;
+        attr.attack = (attr.attack * 105) / 100;
+        attr.defense = (attr.defense * 105) / 100;
+        attr.speed = (attr.speed * 105) / 100;
+        attr.radius = (attr.radius * 105) / 100;
 
         emit NFTLeveledUp(tokenId, newLevel, attr);
     }
