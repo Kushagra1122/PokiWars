@@ -7,12 +7,12 @@ class TokenService {
         this.privateKey = process.env.PRIVATE_KEY;
         // Try multiple RPC URLs for better reliability
         this.rpcUrls = [
-            'https://rpc-amoy.polygon.technology',
-            'https://polygon-amoy.drpc.org',
-            'https://rpc.ankr.com/polygon_amoy'
+            'https://polygon-rpc.com/',
+            'https://polygon.drpc.org',
+            'https://rpc.ankr.com/polygon'
         ];
         this.rpcUrl = this.rpcUrls[0]; // Start with the first one
-        this.contractAddress = '0x5b2df7670561258b41339d464fa277396102802a';
+        this.contractAddress = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
         
         // Validate private key
         if (!this.privateKey) {

@@ -21,8 +21,8 @@ PRIVATE_KEY=your_private_key_here
 - Get your private key from MetaMask: Account Details > Export Private Key
 
 **Note:** RPC URL and contract address are hardcoded:
-- RPC: Polygon Amoy Testnet (`https://rpc-amoy.polygon.technology`)
-- Contract: `0x5b2df7670561258b41339d464fa277396102802a`
+- RPC: Polygon Mainnet (`https://polygon-rpc.com/`)
+- Contract: `0x80e044c711a6904950ff6cbb8f3bdb18877be483`
 
 ## API Endpoints
 
@@ -82,5 +82,5 @@ curl -X POST http://localhost:3001/transfer-tokens \
 
 - The contract owner must have at least 500 tokens
 - The API uses the private key from environment variables to sign transactions
-- Uses Polygon Amoy Testnet RPC
-- Contract address is hardcoded: `0x5b2df7670561258b41339d464fa277396102802a`
+- Uses Polygon Mainnet RPC
+- Contract address is hardcoded: `0x80e044c711a6904950ff6cbb8f3bdb18877be483`

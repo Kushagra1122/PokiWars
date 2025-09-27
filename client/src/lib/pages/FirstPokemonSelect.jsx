@@ -4,21 +4,20 @@ import { ethers } from "ethers";
 import minimalNFTABI from '../../consts/nftabi.json';
 import minimalTokenABI from '../../consts/tokenabi.json';
 import PokemonCard from "@/components/PokimonCard";
-import { tokenApi } from '../api/tokenApi';
 
-const POKI_NFT_ADDRESS = "0x41b3df1beb4b8a4e07c266bc894bba7a0a1878fb";
-const POKI_TOKEN_ADDRESS = "0x5b2df7670561258b41339d464fa277396102802a";
+const POKI_NFT_ADDRESS = "0x2215a0ccaeb7949c80c9e71aaf54d8cf0993b5b7";
+const POKI_TOKEN_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483";
 
-const AMOY_CONFIG = {
-  chainId: '0x13882',
-  chainName: 'Polygon Amoy Testnet',
-  rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+const POLYGON_CONFIG = {
+  chainId: '0x89',
+  chainName: 'Polygon Mainnet',
+  rpcUrls: ['https://polygon-rpc.com/'],
   nativeCurrency: {
     name: 'MATIC',
     symbol: 'MATIC',
     decimals: 18,
   },
-  blockExplorerUrls: ['https://amoy.polygonscan.com/'],
+  blockExplorerUrls: ['https://polygonscan.com/'],
 };
 
 const pokemonList = [
@@ -136,7 +135,6 @@ export default function StarterAnimation() {
   const [pokiTokenBalance, setPokiTokenBalance] = useState("0");
   const [mintCost, setMintCost] = useState("0");
   const [allowance, setAllowance] = useState("0");
-  const [isRequestingTokens, setIsRequestingTokens] = useState(false);
 
   useEffect(() => {
     async function checkWallet() {
@@ -192,9 +190,9 @@ export default function StarterAnimation() {
     if (!window.ethereum) return false;
     try {
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      const isAmoy = chainId === AMOY_CONFIG.chainId;
-      setIsCorrectNetwork(isAmoy);
-      return isAmoy;
+      const isPolygon = chainId === POLYGON_CONFIG.chainId;
+      setIsCorrectNetwork(isPolygon);
+      return isPolygon;
     } catch (error) {
       console.error('Error checking network:', error);
       setIsCorrectNetwork(false);
@@ -232,7 +230,11 @@ export default function StarterAnimation() {
 
       // Check if user needs tokens (balance is 0 or very low)
       if (parseFloat(formattedBalance) === 0) {
-        setStatus("🪙 No tokens detected. Click 'Request 500 PKT Tokens' to get tokens.");
+        console.log('🪙 No tokens detected. Redirecting to dashboard...');
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       } else {
         console.log('✅ Balance is not 0:', formattedBalance);
       }
@@ -245,51 +247,6 @@ export default function StarterAnimation() {
     }
   }
 
-  async function requestTokens(address) {
-    console.log('\n=== CLIENT: Request Tokens Function ===');
-    console.log('Address:', address);
-    console.log('Is already requesting:', isRequestingTokens);
-    console.log('Current balance:', pokiTokenBalance);
-    
-    // Check if already requesting
-    if (isRequestingTokens) {
-      console.log('❌ Already requesting tokens, skipping');
-      return;
-    }
-    
-    setIsRequestingTokens(true);
-    console.log('✅ Set requesting state to true');
-    
-    try {
-      console.log('Calling tokenApi.transferTokens...');
-      const result = await tokenApi.transferTokens(address);
-      console.log('API result received:', result);
-      
-      if (result.success) {
-        console.log('✅ Transfer successful, updating UI');
-        setStatus("✅ 500 PKT tokens transferred successfully! Refreshing balance...");
-        // Wait a moment then refresh the balance
-        setTimeout(async () => {
-          console.log('Refreshing contract data after 3 seconds...');
-          await loadContractData(address);
-          setStatus("✅ Balance updated! You can now proceed to mint your Pokémon.");
-        }, 3000);
-      } else {
-        console.log('❌ Transfer failed:', result.error);
-        setStatus(`❌ Token transfer failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error("❌ CLIENT: Error requesting tokens:", error);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-      setStatus(`❌ Error requesting tokens: ${error.message}`);
-    } finally {
-      console.log('Setting requesting state to false');
-      setIsRequestingTokens(false);
-    }
-    
-    console.log('=== END CLIENT: Request Tokens Function ===\n');
-  }
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -301,8 +258,8 @@ export default function StarterAnimation() {
     try {
       const isCorrectNet = await checkNetwork();
       if (!isCorrectNet) {
-        setStatus("Switching to Polygon Amoy...");
-        const switched = await switchToPolygonAmoy();
+        setStatus("Switching to Polygon Mainnet...");
+        const switched = await switchToPolygon();
         if (!switched) {
           setLoading(false);
           return;
@@ -313,7 +270,7 @@ export default function StarterAnimation() {
         setUserAddress(accounts[0]);
         await getPolBalance(accounts[0]);
         await loadContractData(accounts[0]);
-        setStatus("✅ Wallet connected on Polygon Amoy");
+        setStatus("✅ Wallet connected on Polygon Mainnet");
       }
     } catch (err) {
       console.error("User rejected connection", err);
@@ -322,13 +279,13 @@ export default function StarterAnimation() {
     setLoading(false);
   };
 
-  const switchToPolygonAmoy = async () => {
+  const switchToPolygon = async () => {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: AMOY_CONFIG.chainId }],
+        params: [{ chainId: POLYGON_CONFIG.chainId }],
       });
-      setStatus("✅ Switched to Polygon Amoy");
+      setStatus("✅ Switched to Polygon Mainnet");
       setIsCorrectNetwork(true);
       return true;
     } catch (switchError) {
@@ -336,13 +293,13 @@ export default function StarterAnimation() {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [AMOY_CONFIG],
+            params: [POLYGON_CONFIG],
           });
-          setStatus("✅ Added and switched to Polygon Amoy");
+          setStatus("✅ Added and switched to Polygon Mainnet");
           setIsCorrectNetwork(true);
           return true;
         } catch (addError) {
-          setStatus("❌ Failed to add Polygon Amoy network");
+          setStatus("❌ Failed to add Polygon Mainnet network");
           return false;
         }
       } else {
@@ -352,59 +309,6 @@ export default function StarterAnimation() {
     }
   };
 
-  const approveTokens = async () => {
-    if (!userAddress) {
-      alert("Please connect wallet first");
-      return;
-    }
-    if (!isCorrectNetwork) {
-      setStatus("❌ Please switch to Polygon Amoy first");
-      return;
-    }
-    if (parseFloat(polBalance) < 0.01) {
-      setStatus("❌ Insufficient MATIC for gas fees");
-      return;
-    }
-    setLoading(true);
-    setStatus("Approving tokens...");
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const tokenContract = new ethers.Contract(POKI_TOKEN_ADDRESS, minimalTokenABI, signer);
-
-      const mintCostWei = ethers.utils.parseUnits(mintCost, 18);
-
-      const currentAllowance = await tokenContract.allowance(userAddress, POKI_NFT_ADDRESS);
-      if (currentAllowance.gte(mintCostWei)) {
-        setStatus("✅ Allowance already sufficient");
-        setLoading(false);
-        return;
-      }
-
-      const tx = await tokenContract.approve(POKI_NFT_ADDRESS, mintCostWei, { gasLimit: 150000 });
-      setStatus("⏳ Approval pending...");
-      const receipt = await tx.wait();
-
-      if (receipt.status === 1) {
-        setStatus("✅ Tokens approved! Ready to mint.");
-        const newAllowance = await tokenContract.allowance(userAddress, POKI_NFT_ADDRESS);
-        const decimals = await tokenContract.decimals();
-        setAllowance(ethers.utils.formatUnits(newAllowance, decimals));
-      } else {
-        setStatus("❌ Approval transaction failed");
-      }
-    } catch (error) {
-      console.error("Approval failed:", error);
-      if (error.code === 4001) {
-        setStatus("❌ Approval cancelled by user");
-      } else if (error.message?.includes("insufficient funds")) {
-        setStatus("❌ Insufficient MATIC for gas fees");
-      } else {
-        setStatus(`❌ Approval failed: ${error.message}`);
-      }
-    }
-    setLoading(false);
-  };
 
   const handleSelect = async (pokemon) => {
     if (!userAddress) {
@@ -412,30 +316,53 @@ export default function StarterAnimation() {
       return;
     }
     if (!isCorrectNetwork) {
-      setStatus("❌ Please switch to Polygon Amoy Testnet");
+      setStatus("❌ Please switch to Polygon Mainnet");
       return;
     }
     if (parseFloat(polBalance) < 0.01) {
       setStatus("❌ Insufficient MATIC for gas fees");
       return;
     }
-    const mintCostWei = ethers.utils.parseUnits(mintCost, 18);
-    const allowanceWei = ethers.utils.parseUnits(allowance, 18);
-
-    if (allowanceWei.lt(mintCostWei)) {
-      setStatus("❌ Insufficient token allowance. Please approve tokens first.");
+    if (parseFloat(pokiTokenBalance) < parseFloat(mintCost)) {
+      setStatus("❌ Insufficient PKT tokens for minting");
       return;
     }
+
     setLoading(true);
-    setStatus(`Minting ${pokemon.name}...`);
+    const mintCostWei = ethers.utils.parseUnits(mintCost, 18);
+    const allowanceWei = ethers.utils.parseUnits(allowance, 18);
 
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
+      const tokenContract = new ethers.Contract(POKI_TOKEN_ADDRESS, minimalTokenABI, signer);
       const nftContract = new ethers.Contract(POKI_NFT_ADDRESS, minimalNFTABI, signer);
 
+      // Step 1: Check and approve tokens if needed
+      if (allowanceWei.lt(mintCostWei)) {
+        setStatus(`Approving ${pokemon.name} mint...`);
+        
+        const tx = await tokenContract.approve(POKI_NFT_ADDRESS, mintCostWei, { gasLimit: 150000 });
+        setStatus("⏳ Approval pending...");
+        const receipt = await tx.wait();
+
+        if (receipt.status !== 1) {
+          setStatus("❌ Approval transaction failed");
+          setLoading(false);
+          return;
+        }
+
+        setStatus("✅ Tokens approved! Now minting...");
+        // Update allowance state
+        const newAllowance = await tokenContract.allowance(userAddress, POKI_NFT_ADDRESS);
+        const decimals = await tokenContract.decimals();
+        setAllowance(ethers.utils.formatUnits(newAllowance, decimals));
+      }
+
+      // Step 2: Mint the NFT
+      setStatus(`Minting ${pokemon.name}...`);
+
       // Estimate gas and add buffer
-      setStatus("Estimating gas...");
       const gasEstimate = await nftContract.estimateGas.mintNFT(
         userAddress,
         pokemon.metadataURI,
@@ -470,7 +397,7 @@ export default function StarterAnimation() {
 
       if (receipt.status === 1) {
         setStatus(`🎉 ${pokemon.name} minted successfully! Redirecting to dashboard...`);
-        // Optionally reload contract data to update balances/allowances
+        // Reload contract data to update balances/allowances
         await loadContractData(userAddress);
         // Redirect to dashboard after successful minting
         setTimeout(() => {
@@ -482,15 +409,15 @@ export default function StarterAnimation() {
     } catch (error) {
       console.error("Mint failed:", error);
       if (error.code === 4001) {
-        setStatus("❌ Mint cancelled by user");
+        setStatus("❌ Transaction cancelled by user");
       } else if (error.message?.includes("insufficient funds")) {
         setStatus("❌ Insufficient MATIC for gas fees");
       } else if (error.message?.includes("revert")) {
         setStatus("❌ Transaction reverted. Check if you have enough tokens.");
       } else if (error.message?.includes("allowance")) {
-        setStatus("❌ Insufficient token allowance. Please approve first.");
+        setStatus("❌ Insufficient token allowance. Please try again.");
       } else {
-        setStatus(`❌ Mint failed: ${error.reason || error.message}`);
+        setStatus(`❌ Operation failed: ${error.reason || error.message}`);
       }
     }
     setLoading(false);
@@ -527,14 +454,14 @@ export default function StarterAnimation() {
               PKT Balance: {pokiTokenBalance} | Allowance: {allowance} | MATIC: {polBalance}
             </div>
             <div className="bg-black/60 rounded-3xl text-sm">
-              Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Amoy ✅" : "Wrong Network ⚠️"}
+              Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Mainnet ✅" : "Wrong Network ⚠️"}
             </div>
             {!isCorrectNetwork && (
               <button
-                onClick={switchToPolygonAmoy}
+                onClick={switchToPolygon}
                 className="bg-yellow-600 px-4 py-2 rounded text-sm hover:bg-yellow-700 transition-colors"
               >
-                Switch to Polygon Amoy
+                Switch to Polygon Mainnet
               </button>
             )}
           </div>
@@ -543,7 +470,7 @@ export default function StarterAnimation() {
         {/* Network warning */}
         {!isCorrectNetwork && userAddress && (
           <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
-            <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Amoy Testnet
+            <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Mainnet
           </div>
         )}
 
@@ -554,46 +481,18 @@ export default function StarterAnimation() {
           </div>
         )}
 
-        {/* Approve button */}
-        {userAddress && parseFloat(allowance) < parseFloat(mintCost) && (
-          <button
-            onClick={approveTokens}
-            disabled={loading || parseFloat(polBalance) < 0.01}
-            className="mb-4 bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
-          >
-            {loading ? "Approving..." : `Approve ${mintCost} PKT`}
-          </button>
-        )}
-
-        <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
-
-        {/* Show requesting state */}
-        {userAddress && isRequestingTokens && (
-          <div className="mb-4 bg-blue-600 px-6 py-2 rounded text-center">
-            Requesting Tokens... Please wait
+        {/* PKT Balance warning */}
+        {userAddress && parseFloat(pokiTokenBalance) < parseFloat(mintCost) && parseFloat(pokiTokenBalance) > 0 && (
+          <div className="bg-red-600 p-3 rounded-lg mb-4 text-center">
+            <strong>⚠️ Insufficient PKT Tokens:</strong> You need {mintCost} PKT to mint a Pokémon.
           </div>
         )}
 
-        {/* Manual request tokens button - only show if balance is 0 and user is not new */}
-        {userAddress && parseFloat(pokiTokenBalance) === 0 && !isRequestingTokens && (
-          <button
-            onClick={() => requestTokens(userAddress)}
-            disabled={isRequestingTokens}
-            className="mb-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
-          >
-            Request 500 PKT Tokens
-          </button>
-        )}
-
-        {/* Approve button */}
-        {userAddress && parseFloat(allowance) < parseFloat(mintCost) && parseFloat(pokiTokenBalance) > 0 && (
-          <button
-            onClick={approveTokens}
-            disabled={loading || parseFloat(polBalance) < 0.01}
-            className="mb-4 bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
-          >
-            {loading ? "Approving..." : `Approve ${mintCost} PKT`}
-          </button>
+        {/* No PKT tokens warning */}
+        {userAddress && parseFloat(pokiTokenBalance) === 0 && (
+          <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
+            <strong>⚠️ No PKT Tokens:</strong> You need PKT tokens to mint Pokémon. Redirecting to dashboard...
+          </div>
         )}
 
         <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
@@ -624,7 +523,7 @@ export default function StarterAnimation() {
               exp={pokemon.exp}
               level={pokemon.level}
               onClick={() => handleSelect(pokemon)}
-              disabled={loading || !userAddress || parseFloat(allowance) < parseFloat(mintCost) || parseFloat(polBalance) < 0.01}
+              disabled={loading || !userAddress || parseFloat(pokiTokenBalance) < parseFloat(mintCost) || parseFloat(polBalance) < 0.01}
             />
           ))}
         </div>
@@ -638,8 +537,8 @@ export default function StarterAnimation() {
 
         {/* Instructions */}
         <div className="mt-8 text-center text-sm text-gray-400 max-w-2xl">
-          <p>Make sure you're on Polygon Amoy Testnet and have test MATIC for gas fees.</p>
-          <p>You'll need PKT tokens and approval before minting Pokémon NFTs.</p>
+          <p>Make sure you're on Polygon Mainnet and have MATIC for gas fees.</p>
+          <p>Click on any Pokémon to automatically approve and mint your starter NFT.</p>
         </div>
       </div>
     </div>

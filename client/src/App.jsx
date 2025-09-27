@@ -13,6 +13,7 @@ import StarterAnimation from "./lib/pages/FirstPokemonSelect";
 import { UserProvider } from "./contexts/UserContext";
 import { PokemonProvider } from "./contexts/PokemonContext";
 import Market from "./components/Market";
+import TestContract from "./lib/pages/TestContract";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <PokemonProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            {/* <Route path="/" element={<TestContract />} /> */}
             <Route path="/home" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />

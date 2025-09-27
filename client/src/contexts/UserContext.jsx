@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { ethers } from 'ethers'
 import tokenABI from '@/consts/tokenabi.json'
 
-const POKI_TOKEN_ADDRESS = '0x5b2df7670561258b41339d464fa277396102802a';
+const POKI_TOKEN_ADDRESS = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
 
 const UserContext = createContext()
 
@@ -33,7 +33,7 @@ export const UserProvider = ({ children }) => {
     }
 
     try {
-      const provider = new ethers.providers.JsonRpcProvider("https://rpc-amoy.polygon.technology")
+      const provider = new ethers.providers.JsonRpcProvider("https://polygon-rpc.com/")
       const contract = new ethers.Contract(POKI_TOKEN_ADDRESS, tokenABI, provider)
 
       const rawBalance = await contract.balanceOf(address)

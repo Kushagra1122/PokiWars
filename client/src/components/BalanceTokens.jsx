@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import tokenABI from '../consts/tokenabi.json';  // Import ABI JSON
 
-const POKI_TOKEN_ADDRESS = '0x5b2df7670561258b41339d464fa277396102802a';
+const POKI_TOKEN_ADDRESS = '0x80e044c711a6904950ff6cbb8f3bdb18877be483';
 
 export default function TokenBalance({ walletAddress }) {
     const [balance, setBalance] = useState(null);
@@ -21,7 +21,7 @@ export default function TokenBalance({ walletAddress }) {
             }
 
             try {
-                const provider = new ethers.providers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
+                const provider = new ethers.providers.JsonRpcProvider("https://polygon-rpc.com/");
 
                 const network = await provider.getNetwork();
                 console.log(network);
@@ -29,7 +29,7 @@ export default function TokenBalance({ walletAddress }) {
                 console.log("Block number:", blockNumber);
 
                 // Now this points to your custom testnet RPC
-                const code = await provider.getCode('0x5b2df7670561258b41339d464fa277396102802a');
+                const code = await provider.getCode('0x80e044c711a6904950ff6cbb8f3bdb18877be483');
                 console.log(code);
                 if (code === '0x') {
                     setError('Contract not deployed at the specified address on the connected network');

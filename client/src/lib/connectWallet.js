@@ -8,13 +8,13 @@ async function connectWallet() {
     if (!accounts || accounts.length === 0) throw new Error("No accounts found");
     const connectedAccount = accounts[0];
 
-    const polygonAmoyChainId = "0x13882"; // Polygon Amoy testnet
+    const polygonChainId = "0x89"; // Polygon Mainnet
     const network = await provider.getNetwork();
-    if (network.chainId !== 80002) { // 80002 is Polygon Amoy
+    if (network.chainId !== 137) { // 137 is Polygon Mainnet
       try {
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: polygonAmoyChainId }],
+          params: [{ chainId: polygonChainId }],
         });
       } catch (switchError) {
         // If the network doesn't exist, add it
@@ -22,15 +22,15 @@ async function connectWallet() {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [{
-              chainId: polygonAmoyChainId,
-              chainName: "Polygon Amoy Testnet",
-              rpcUrls: ["https://rpc-amoy.polygon.technology"],
+              chainId: polygonChainId,
+              chainName: "Polygon Mainnet",
+              rpcUrls: ["https://polygon-rpc.com/"],
               nativeCurrency: {
                 name: "MATIC",
                 symbol: "MATIC",
                 decimals: 18,
               },
-              blockExplorerUrls: ["https://amoy.polygonscan.com/"],
+              blockExplorerUrls: ["https://polygonscan.com/"],
             }],
           });
         } else {

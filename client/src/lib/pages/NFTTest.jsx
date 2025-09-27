@@ -4,20 +4,20 @@ import minimalNFTABI from '../../consts/nftabi.json';
 import minimalTokenABI from '../../consts/tokenabi.json'; // Added token ABI
 import PokemonCard from "@/components/PokimonCard";
 
-const POKI_NFT_ADDRESS = "0x41b3df1beb4b8a4e07c266bc894bba7a0a1878fb";
-const POKI_TOKEN_ADDRESS = "0x5b2df7670561258b41339d464fa277396102802a";
+const POKI_NFT_ADDRESS = "0x2215a0ccaeb7949c80c9e71aaf54d8cf0993b5b7";
+const POKI_TOKEN_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483";
 
-// Updated Polygon Amoy configuration with POL
-const AMOY_CONFIG = {
-    chainId: '0x13882',
-    chainName: 'Polygon Amoy Testnet',
-    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+// Updated Polygon Mainnet configuration
+const POLYGON_CONFIG = {
+    chainId: '0x89',
+    chainName: 'Polygon Mainnet',
+    rpcUrls: ['https://polygon-rpc.com/'],
     nativeCurrency: {
-        name: 'POL',
-        symbol: 'POL',
+        name: 'MATIC',
+        symbol: 'MATIC',
         decimals: 18
     },
-    blockExplorerUrls: ['https://amoy.polygonscan.com/']
+    blockExplorerUrls: ['https://polygonscan.com/']
 };
 
 const pokemonList = [
@@ -133,9 +133,9 @@ export default function StarterAnimation() {
         if (!window.ethereum) return false;
         try {
             const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-            const isAmoy = chainId === AMOY_CONFIG.chainId;
-            setIsCorrectNetwork(isAmoy);
-            return isAmoy;
+            const isPolygon = chainId === POLYGON_CONFIG.chainId;
+            setIsCorrectNetwork(isPolygon);
+            return isPolygon;
         } catch (error) {
             console.error('Error checking network:', error);
             return false;
@@ -181,12 +181,12 @@ export default function StarterAnimation() {
         }
     }
 
-    // Switch to Polygon Amoy - using the same method as NFTTestPage
-    async function switchToAmoy() {
+    // Switch to Polygon Mainnet
+    async function switchToPolygon() {
         try {
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
-                params: [{ chainId: AMOY_CONFIG.chainId }],
+                params: [{ chainId: POLYGON_CONFIG.chainId }],
             });
             return true;
         } catch (switchError) {
@@ -194,17 +194,17 @@ export default function StarterAnimation() {
                 try {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
-                        params: [AMOY_CONFIG],
+                        params: [POLYGON_CONFIG],
                     });
                     return true;
                 } catch (addError) {
                     console.error('Failed to add network:', addError);
-                    setStatus("❌ Failed to add Polygon Amoy network");
+                    setStatus("❌ Failed to add Polygon Mainnet network");
                     return false;
                 }
             } else {
                 console.error('Failed to switch network:', switchError);
-                setStatus("❌ Failed to switch to Polygon Amoy");
+                setStatus("❌ Failed to switch to Polygon Mainnet");
                 return false;
             }
         }
@@ -223,8 +223,8 @@ export default function StarterAnimation() {
             // Check network first like in NFTTestPage
             const isCorrectNetwork = await checkNetwork();
             if (!isCorrectNetwork) {
-                setStatus("Switching to Polygon Amoy...");
-                const switched = await switchToAmoy();
+                setStatus("Switching to Polygon Mainnet...");
+                const switched = await switchToPolygon();
                 if (!switched) {
                     setLoading(false);
                     return;
@@ -239,7 +239,7 @@ export default function StarterAnimation() {
 
             await getPolBalance(address);
             await loadContractData(address);
-            setStatus("✅ Connected to Polygon Amoy");
+            setStatus("✅ Connected to Polygon Mainnet");
 
         } catch (error) {
             console.error("Connection failed:", error);
@@ -257,7 +257,7 @@ export default function StarterAnimation() {
 
         const isCorrectNetwork = await checkNetwork();
         if (!isCorrectNetwork) {
-            setStatus("❌ Please switch to Polygon Amoy first");
+            setStatus("❌ Please switch to Polygon Mainnet first");
             return;
         }
 
@@ -397,14 +397,14 @@ export default function StarterAnimation() {
                         PKT Balance: {pokiTokenBalance} | Allowance: {allowance} | POL: {polBalance}
                     </div>
                     <div className="text-sm">
-                        Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Amoy ✅" : "Wrong Network ⚠️"}
+                        Mint Cost: {mintCost} PKT | Network: {isCorrectNetwork ? "Polygon Mainnet ✅" : "Wrong Network ⚠️"}
                     </div>
                     {!isCorrectNetwork && (
                         <button
-                            onClick={switchToAmoy}
+                            onClick={switchToPolygon}
                             className="bg-yellow-600 px-4 py-2 rounded text-sm hover:bg-yellow-700 transition-colors"
                         >
-                            Switch to Polygon Amoy
+                            Switch to Polygon Mainnet
                         </button>
                     )}
                 </div>
@@ -413,7 +413,7 @@ export default function StarterAnimation() {
             {/* Network Warning */}
             {!isCorrectNetwork && userAddress && (
                 <div className="bg-yellow-600 p-3 rounded-lg mb-4 text-center">
-                    <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Amoy Testnet
+                    <strong>⚠️ Wrong Network:</strong> Please switch to Polygon Mainnet
                 </div>
             )}
 
@@ -472,7 +472,7 @@ export default function StarterAnimation() {
 
             {/* Instructions */}
             <div className="mt-8 text-center text-sm text-gray-400 max-w-2xl">
-                <p>Make sure you're on Polygon Amoy Testnet and have test POL for gas fees.</p>
+                <p>Make sure you're on Polygon Mainnet and have MATIC for gas fees.</p>
                 <p>You'll need to approve PKT tokens before minting.</p>
             </div>
         </div>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from 'react';
 import { ethers } from 'ethers';
 import minimalNFTABI from "../consts/nftabi.json";
 
-const POKI_NFT_ADDRESS = "0x41b3df1beb4b8a4e07c266bc894bba7a0a1878fb";
+const POKI_NFT_ADDRESS = "0x2215a0ccaeb7949c80c9e71aaf54d8cf0993b5b7";
 
 const PokemonContext = createContext();
 
