@@ -54,64 +54,16 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-  // Check for existing user session on mount
+  // Check for existing user session on mount - DISABLED for manual control
   useEffect(() => {
-    async function checkUserSession() {
-      try {
-        if (window.ethereum && window.ethereum.isMetaMask) {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-          if (accounts.length > 0) {
-            const address = accounts[0]
-            setWalletAddress(address)
-            
-            // Fetch user data from Supabase
-            const { data, error } = await supabase
-              .from('users')
-              .select('name')
-              .eq('wallet_address', address)
-              .single()
-
-            if (data && !error) {
-              setUsername(data.name)
-            }
-            
-            // Fetch token balance for the connected wallet
-            fetchTokenBalance(address)
-          }
-        }
-      } catch (error) {
-        console.error('Error checking user session:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkUserSession()
+    // Auto wallet detection disabled - user must manually connect
+    setIsLoading(false)
   }, [])
 
-  // Listen for account changes
+  // Listen for account changes - DISABLED for manual control
   useEffect(() => {
-    if (window.ethereum) {
-      const handleAccountsChanged = (accounts) => {
-        if (accounts.length === 0) {
-          // User disconnected
-          setUsername('')
-          setWalletAddress('')
-        } else {
-          // User switched accounts
-          const newAddress = accounts[0]
-          setWalletAddress(newAddress)
-          // Fetch token balance for the new account
-          fetchTokenBalance(newAddress)
-        }
-      }
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged)
-      
-      return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
-      }
-    }
+    // Auto account change detection disabled - user must manually connect/disconnect
+    // This prevents automatic reconnection when user switches accounts in MetaMask
   }, [])
 
   const updateUsername = (newUsername) => {
@@ -129,6 +81,43 @@ export const UserProvider = ({ children }) => {
     setBalanceError(null)
   }
 
+  // Complete wallet unlinking function
+  const unlinkWallet = async () => {
+    try {
+      // Clear all user data from context
+      clearUser()
+      
+      // Clear any stored data in localStorage
+      localStorage.removeItem('userData')
+      localStorage.removeItem('walletAddress')
+      localStorage.removeItem('username')
+      
+      // If MetaMask is available, try to disconnect
+      if (window.ethereum && window.ethereum.isMetaMask) {
+        try {
+          // Try to disconnect using the new disconnect method (if available)
+          if (window.ethereum.disconnect) {
+            await window.ethereum.disconnect()
+          }
+          
+          // Also try the legacy method
+          if (window.ethereum.close) {
+            await window.ethereum.close()
+          }
+        } catch (disconnectError) {
+          console.log('MetaMask disconnect not supported or failed:', disconnectError)
+          // This is normal - MetaMask doesn't always support programmatic disconnection
+        }
+      }
+      
+      console.log('Wallet unlinked successfully')
+      return { success: true, message: 'Wallet unlinked successfully' }
+    } catch (error) {
+      console.error('Error unlinking wallet:', error)
+      return { success: false, message: 'Error unlinking wallet' }
+    }
+  }
+
   const value = {
     username,
     walletAddress,
@@ -138,6 +127,7 @@ export const UserProvider = ({ children }) => {
     updateUsername,
     updateWalletAddress,
     clearUser,
+    unlinkWallet,
     fetchTokenBalance
   }
 

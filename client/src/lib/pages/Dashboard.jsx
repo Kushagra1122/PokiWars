@@ -1,5 +1,5 @@
 import TokenBalance from '@/components/BalanceTokens';
-import { Bell, User, Users } from 'lucide-react';
+import { Bell, User, Users, LogOut } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,36 +14,22 @@ import {
 import { Button } from '@/components/ui/8bit/button';
 import PokemonCard from '@/components/PokimonCard';
 import { usePokemon } from '@/contexts/PokemonContext';
+import { useUser } from '@/contexts/UserContext';
 
 function Dashboard() {
   const navigate = useNavigate();
   const { main, pokemonCollection, updateMainPokemon, fetchNFTsForAddress } = usePokemon();
+  const { walletAddress, unlinkWallet } = useUser();
 
   const [hoveredNav, setHoveredNav] = useState(null);
-  const [walletAddress, setWalletAddress] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
-  // Check MetaMask connection on mount
+  // Check if wallet is connected, redirect if not
   useEffect(() => {
-    async function checkWalletConnection() {
-      if (window.ethereum && window.ethereum.isMetaMask) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length === 0) {
-            navigate('/'); // Not connected, redirect
-          } else {
-            setWalletAddress(accounts[0]);
-          }
-        } catch (err) {
-          console.error('Error checking wallet connection:', err);
-          navigate('/');
-        }
-      } else {
-        navigate('/'); // MetaMask not installed
-      }
+    if (!walletAddress) {
+      navigate('/'); // Not connected, redirect to landing page
     }
-    checkWalletConnection();
-  }, [navigate]);
+  }, [walletAddress, navigate]);
 
   // Fetch NFTs once walletAddress determined
   useEffect(() => {
@@ -80,6 +66,20 @@ function Dashboard() {
     // Add friends logic here
   };
 
+  const handleBuyNFTClick = () => {
+    navigate('/first');
+  };
+
+  const handleUnlinkWallet = async () => {
+    const result = await unlinkWallet();
+    if (result.success) {
+      setShowProfileDropdown(false);
+      navigate('/'); // Redirect to landing page after unlinking
+    } else {
+      alert('Failed to unlink wallet: ' + result.message);
+    }
+  };
+
   const pokemonSelect = (pokemon) => {
     updateMainPokemon(pokemon);
   };
@@ -108,18 +108,25 @@ function Dashboard() {
           <div className={`tooltip ${hoveredNav === 'profile' ? 'show' : ''}`} style={{ top: '70px', left: '50%', transform: 'translateX(-50%)' }}>
             Profile
           </div>
-          {showProfileDropdown && (
-            <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
-              <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
-              <button
-                onClick={handleMyProfileClick}
-                className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded"
-              >
-                My Profile
-              </button>
-              <TokenBalance walletAddress={walletAddress} />
-            </div>
-          )}
+           {showProfileDropdown && (
+             <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
+               <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
+               <button
+                 onClick={handleMyProfileClick}
+                 className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded mb-2"
+               >
+                 My Profile
+               </button>
+               <button
+                 onClick={handleUnlinkWallet}
+                 className="w-full px-2 py-1 bg-red-600 hover:bg-red-700 rounded flex items-center justify-center gap-2"
+               >
+                 <LogOut className="w-4 h-4" />
+                 Unlink Wallet
+               </button>
+               <TokenBalance walletAddress={walletAddress} />
+             </div>
+           )}
         </div>
 
         <div
@@ -167,40 +174,50 @@ function Dashboard() {
         {main && <img src={main.main} alt="Character" className="max-w-md max-h-96 object-contain" />}
       </div>
 
-      <Drawer>
-        <DrawerTrigger className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer">
-          Swap
-        </DrawerTrigger>
+      {/* Conditional rendering based on NFT count */}
+      {pokemonCollection.length === 0 ? (
+        <button
+          onClick={handleBuyNFTClick}
+          className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer"
+        >
+          Buy NFT
+        </button>
+      ) : (
+        <Drawer>
+          <DrawerTrigger className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer">
+            Swap
+          </DrawerTrigger>
 
-        <DrawerContent className="h-110">
-          <DrawerHeader>
-            <DrawerTitle className="text-2xl">SELECT YOUR MAIN.</DrawerTitle>
-            <DrawerDescription>You'll take this Pokimon to battle</DrawerDescription>
-          </DrawerHeader>
+          <DrawerContent className="h-110">
+            <DrawerHeader>
+              <DrawerTitle className="text-2xl">SELECT YOUR MAIN.</DrawerTitle>
+              <DrawerDescription>You'll take this Pokimon to battle</DrawerDescription>
+            </DrawerHeader>
 
-          <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
-            <div className="flex justify-center gap-2 items-center gap flex-wrap">
-              {pokemonCollection.map((pokemon, index) => (
-                <PokemonCard
-                  imageSrc={pokemon.img}
-                  key={index}
-                  name={pokemon.name}
-                  type={pokemon.type}
-                  attack={pokemon.attack}
-                  range={pokemon.range}
-                  exp={pokemon.exp}
-                  level={pokemon.level}
-                  onClick={() => pokemonSelect(pokemon)}
-                />
-              ))}
+            <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
+              <div className="flex justify-center gap-2 items-center gap flex-wrap">
+                {pokemonCollection.map((pokemon, index) => (
+                  <PokemonCard
+                    imageSrc={pokemon.img}
+                    key={index}
+                    name={pokemon.name}
+                    type={pokemon.type}
+                    attack={pokemon.attack}
+                    range={pokemon.range}
+                    exp={pokemon.exp}
+                    level={pokemon.level}
+                    onClick={() => pokemonSelect(pokemon)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
 
-          <DrawerClose className="absolute m-4 top-0 right-0">
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerContent>
-      </Drawer>
+            <DrawerClose className="absolute m-4 top-0 right-0">
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }

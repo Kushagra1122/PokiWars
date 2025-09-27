@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import minimalNFTABI from '../../consts/nftabi.json';
 import minimalTokenABI from '../../consts/tokenabi.json';
 import PokemonCard from "@/components/PokimonCard";
+import { tokenApi } from '../api/tokenApi';
 
 const POKI_NFT_ADDRESS = "0x41b3df1beb4b8a4e07c266bc894bba7a0a1878fb";
 const POKI_TOKEN_ADDRESS = "0x5b2df7670561258b41339d464fa277396102802a";
@@ -82,6 +83,7 @@ export default function StarterAnimation() {
   const [pokiTokenBalance, setPokiTokenBalance] = useState("0");
   const [mintCost, setMintCost] = useState("0");
   const [allowance, setAllowance] = useState("0");
+  const [isRequestingTokens, setIsRequestingTokens] = useState(false);
 
   useEffect(() => {
     async function checkWallet() {
@@ -172,7 +174,14 @@ export default function StarterAnimation() {
       // Get token balance and decimals
       const balance = await tokenContract.balanceOf(address);
       const decimals = await tokenContract.decimals();
-      setPokiTokenBalance(ethers.utils.formatUnits(balance, decimals));
+      const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+      setPokiTokenBalance(formattedBalance);
+
+      // Check if user needs tokens (balance is 0 or very low)
+      if (parseFloat(formattedBalance) === 0) {
+        setStatus("🪙 No tokens detected. Requesting 500 PKT tokens...");
+        await requestTokens(address);
+      }
 
       // Get token allowance
       const currentAllowance = await tokenContract.allowance(address, POKI_NFT_ADDRESS);
@@ -180,6 +189,49 @@ export default function StarterAnimation() {
     } catch (error) {
       console.error("Error loading contract data:", error);
     }
+  }
+
+  async function requestTokens(address) {
+    console.log('\n=== CLIENT: Request Tokens Function ===');
+    console.log('Address:', address);
+    console.log('Is already requesting:', isRequestingTokens);
+    
+    if (isRequestingTokens) {
+      console.log('❌ Already requesting tokens, skipping');
+      return;
+    }
+    
+    setIsRequestingTokens(true);
+    console.log('✅ Set requesting state to true');
+    
+    try {
+      console.log('Calling tokenApi.transferTokens...');
+      const result = await tokenApi.transferTokens(address);
+      console.log('API result received:', result);
+      
+      if (result.success) {
+        console.log('✅ Transfer successful, updating UI');
+        setStatus("✅ 500 PKT tokens transferred successfully! Refreshing balance...");
+        // Wait a moment then refresh the balance
+        setTimeout(async () => {
+          console.log('Refreshing contract data after 2 seconds...');
+          await loadContractData(address);
+        }, 2000);
+      } else {
+        console.log('❌ Transfer failed:', result.error);
+        setStatus(`❌ Token transfer failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("❌ CLIENT: Error requesting tokens:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      setStatus(`❌ Error requesting tokens: ${error.message}`);
+    } finally {
+      console.log('Setting requesting state to false');
+      setIsRequestingTokens(false);
+    }
+    
+    console.log('=== END CLIENT: Request Tokens Function ===\n');
   }
 
   const connectWallet = async () => {
@@ -429,8 +481,19 @@ export default function StarterAnimation() {
         </div>
       )}
 
+      {/* Request tokens button - show if balance is 0 or very low */}
+      {userAddress && parseFloat(pokiTokenBalance) === 0 && (
+        <button
+          onClick={() => requestTokens(userAddress)}
+          disabled={isRequestingTokens}
+          className="mb-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
+        >
+          {isRequestingTokens ? "Requesting Tokens..." : "Request 500 PKT Tokens"}
+        </button>
+      )}
+
       {/* Approve button */}
-      {userAddress && parseFloat(allowance) < parseFloat(mintCost) && (
+      {userAddress && parseFloat(allowance) < parseFloat(mintCost) && parseFloat(pokiTokenBalance) > 0 && (
         <button
           onClick={approveTokens}
           disabled={loading || parseFloat(polBalance) < 0.01}

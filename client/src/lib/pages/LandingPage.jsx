@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import PixelBlast from '@/components/PixelBlast'
 import { Button } from '@/components/ui/8bit/button'
-import connectWallet from '@/lib/connectWallet'
+import { connectWalletManually } from '@/lib/connectWallet'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '@/contexts/UserContext'
@@ -17,16 +17,19 @@ function LandingPage() {
   // Handle the initial "Get Started" click
   const handleGetStarted = async () => {
     try {
-      // First connect the wallet
-      const account = await connectWallet()
-      updateWalletAddress(account)
-      setConnectedAccount(account)
+      // First connect the wallet using manual connection
+      const result = await connectWalletManually(updateWalletAddress, updateUsername)
+      if (!result.success) {
+        alert('Failed to connect wallet: ' + result.error)
+        return
+      }
+      setConnectedAccount(result.account)
 
       // Check if user exists in Supabase
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('wallet_address', account)
+        .eq('wallet_address', result.account)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -91,28 +94,14 @@ function LandingPage() {
     setConnectedAccount(null)
   }
 
-  // Check MetaMask connection on mount
+  // Check if user is already connected (manual check only)
   useEffect(() => {
-    async function checkWalletConnection() {
-      if (window.ethereum && window.ethereum.isMetaMask) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-          if (accounts.length === 0) {
-            setBtnText('GET STARTED')
-          } else {
-            setBtnText('Go to Dashboard')
-            updateWalletAddress(accounts[0])
-          }
-        } catch (err) {
-          console.error('Error checking wallet connection:', err)
-          navigate('/')
-        }
-      } else {
-        navigate('/') // MetaMask not installed
-      }
+    if (walletAddress) {
+      setBtnText('Go to Dashboard')
+    } else {
+      setBtnText('GET STARTED')
     }
-    checkWalletConnection()
-  }, [navigate, updateWalletAddress])
+  }, [walletAddress])
 
   // Handle existing wallet connection
   const handleExistingConnection = async () => {
