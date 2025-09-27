@@ -266,8 +266,21 @@ function handleLobbyConnection(io, socket) {
             }
 
             const gameData = lobby.startGame();
+            
+            // Enhance game data with proper player character mapping
+            const playersWithCharacters = {};
+            gameData.players.forEach(player => {
+                playersWithCharacters[player.id] = {
+                    id: player.id,
+                    name: player.name,
+                    char: player.char,
+                    isHost: player.isHost
+                };
+            });
+            
+            gameData.playersWithCharacters = playersWithCharacters;
 
-            console.log(`🎮 Game starting for lobby ${currentLobbyId}`);
+            console.log(`🎮 Game starting for lobby ${currentLobbyId}`, gameData);
 
             if (callback) {
                 callback({ 

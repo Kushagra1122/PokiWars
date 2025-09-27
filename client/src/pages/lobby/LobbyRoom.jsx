@@ -11,6 +11,8 @@ export default function LobbyRoom() {
   const [error, setError] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [currentPlayerId, setCurrentPlayerId] = useState(null);
+  const [gameStartTimer, setGameStartTimer] = useState(null);
+  const [timeUntilStart, setTimeUntilStart] = useState(0);
 
   const availableMaps = [
     { id: 'forest', name: 'Forest Map' },
@@ -30,6 +32,10 @@ export default function LobbyRoom() {
 
     return () => {
       cleanupSocketListeners();
+      // Clear timer on component unmount
+      if (gameStartTimer) {
+        clearInterval(gameStartTimer);
+      }
     };
   }, [lobbyId]);
 
@@ -111,7 +117,55 @@ export default function LobbyRoom() {
 
     socketManager.socket.on('gameStarting', (gameData) => {
       console.log('Game starting with data:', gameData);
-      navigate('/game', { state: { gameData } });
+      // Clear any existing timer
+      if (gameStartTimer) {
+        clearInterval(gameStartTimer);
+        setGameStartTimer(null);
+      }
+      
+      // Enhance game data with current player's character info
+      const currentPlayer = lobby?.players.find(p => p.id === currentPlayerId);
+      const enhancedGameData = {
+        ...gameData,
+        currentPlayerId: currentPlayerId,
+        playerCharacter: currentPlayer?.char || 'ALAKAZAM'
+      };
+      
+      console.log('Enhanced game data with character:', enhancedGameData);
+      navigate('/game', { state: { gameData: enhancedGameData } });
+    });
+
+    socketManager.socket.on('gameStartCountdown', (data) => {
+      console.log('Game start countdown:', data);
+      setTimeUntilStart(data.timeLeft);
+      
+      // Clear existing timer if any
+      if (gameStartTimer) {
+        clearInterval(gameStartTimer);
+      }
+      
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setTimeUntilStart(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setGameStartTimer(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      setGameStartTimer(timer);
+    });
+
+    socketManager.socket.on('gameStartCancelled', () => {
+      console.log('Game start cancelled');
+      if (gameStartTimer) {
+        clearInterval(gameStartTimer);
+        setGameStartTimer(null);
+      }
+      setTimeUntilStart(0);
     });
 
     // Handle lobby list updates
@@ -128,6 +182,8 @@ export default function LobbyRoom() {
     socketManager.socket.off('lobbySettingsUpdated');
     socketManager.socket.off('playerReadyChanged');
     socketManager.socket.off('gameStarting');
+    socketManager.socket.off('gameStartCountdown');
+    socketManager.socket.off('gameStartCancelled');
     socketManager.socket.off('lobbyListUpdate');
   };
 
@@ -404,7 +460,16 @@ export default function LobbyRoom() {
                 <h2 className="text-xl font-semibold">
                   Players ({lobby.players.length}/{lobby.settings.maxPlayers})
                 </h2>
-                {lobby.allReady && isHost ? (
+                {timeUntilStart > 0 ? (
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-400">
+                      {timeUntilStart}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Game starting...
+                    </div>
+                  </div>
+                ) : lobby.allReady && isHost ? (
                   <button
                     onClick={handleStartGame}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors"

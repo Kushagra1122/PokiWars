@@ -15,7 +15,15 @@ function handleConnection(io, socket) {
 
         socket.on("newPlayer", (playerInfo) => {
             try {
-                const newPlayer = addPlayer(socket.id, playerInfo);
+                // Ensure we use the character from playerInfo, defaulting to ALAKAZAM if not provided
+                const characterToUse = playerInfo.char || playerInfo.character || 'ALAKAZAM';
+                
+                const enhancedPlayerInfo = {
+                    ...playerInfo,
+                    char: characterToUse
+                };
+                
+                const newPlayer = addPlayer(socket.id, enhancedPlayerInfo);
                 console.log(`🎮 New player ${newPlayer.char} (${socket.id}) spawned at position (${newPlayer.x}, ${newPlayer.y})`);
 
                 const scores = {};

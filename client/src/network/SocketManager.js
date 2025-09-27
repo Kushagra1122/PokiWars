@@ -43,8 +43,23 @@ class SocketManager {
   async connectForGame(selectedChar) {
     await this.connect();
     
+    // Get additional game data from registry if available (from lobby)
+    const gameData = this.scene && this.scene.registry.get("gameData");
+    const playersWithCharacters = gameData && gameData.playersWithCharacters;
+    
+    // Try to find the correct character for this socket
+    let characterToUse = selectedChar;
+    if (playersWithCharacters && this.socket && this.socket.id) {
+      const playerData = playersWithCharacters[this.socket.id];
+      if (playerData && playerData.char) {
+        characterToUse = playerData.char;
+        console.log(`Using character from lobby data: ${characterToUse}`);
+      }
+    }
+    
     this.socket.emit("newPlayer", {
-      char: selectedChar,
+      char: characterToUse,
+      character: characterToUse, // Send both for compatibility
       screenWidth: this.scene.scale.width - 190,  // Send the actual drawable area
       screenHeight: this.scene.scale.height - 190, // Send the actual drawable area
     });
@@ -111,6 +126,11 @@ class SocketManager {
           this.scene.addOtherPlayer(p, id);
         }
       });
+      
+      // Start the timer when players are loaded
+      if (this.scene && this.scene.startGameTimer) {
+        this.scene.startGameTimer();
+      }
     });
 
     this.socket.on("newPlayer", (p) => {
@@ -190,6 +210,21 @@ class SocketManager {
       
       // Show a brief notification in the game
       this.showPlayerLeftNotification(data.playerChar, data.remainingCount);
+    });
+
+    this.socket.on("gameStart", (data) => {
+      // Game has officially started, activate the timer
+      console.log("Game started, activating timer");
+      if (this.scene && this.scene.startGameTimer) {
+        this.scene.startGameTimer();
+      }
+    });
+
+    this.socket.on("gameTimeUpdate", (data) => {
+      // Sync timer with server
+      if (this.scene && data.timeRemaining !== undefined) {
+        this.scene.gameTimeRemaining = data.timeRemaining;
+      }
     });
   }
 
