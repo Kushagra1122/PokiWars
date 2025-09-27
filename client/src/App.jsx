@@ -10,11 +10,10 @@ function App() {
   return (
     <>
         
-        {/* <Profile/> */}
+        <Profile/>
         {/* <LandingPage/> */}
         {/* <Dashboard/> */}
-        <StarterAnimation/>
-
+        {/* <StarterAnimation/> */}
 
         {/* <Routes>  
         <Route path="/" element={<LandingPage />} />
