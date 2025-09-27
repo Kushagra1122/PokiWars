@@ -28,9 +28,27 @@ export default function Game() {
         setActiveScene("MainGameScene");
         // If coming from lobby, set the player data
         if (comingFromLobby && gameData) {
-          this.registry.set("selectedCharacter", gameData.playerCharacter);
+          // Find the current player's character from the game data
+          const currentPlayerId = gameData.playersWithCharacters && Object.keys(gameData.playersWithCharacters).find(id => 
+            gameData.playersWithCharacters[id].id === gameData.currentPlayerId
+          );
+          
+          let selectedChar = 'ALAKAZAM';
+          if (currentPlayerId && gameData.playersWithCharacters[currentPlayerId]) {
+            selectedChar = gameData.playersWithCharacters[currentPlayerId].char;
+          } else if (gameData.playerCharacter) {
+            selectedChar = gameData.playerCharacter;
+          } else if (gameData.players && gameData.players.length > 0) {
+            // Try to find player by some other means
+            const player = gameData.players.find(p => p.char);
+            if (player) selectedChar = player.char;
+          }
+          
+          console.log(`Setting character from lobby: ${selectedChar}`);
+          this.registry.set("selectedCharacter", selectedChar);
           this.registry.set("allPlayers", gameData.players);
           this.registry.set("gameSettings", gameData.settings);
+          this.registry.set("gameData", gameData);
         }
         super.create();
       }
