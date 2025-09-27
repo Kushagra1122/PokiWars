@@ -5,7 +5,7 @@ import connectWallet from '@/lib/connectWallet'
 import { useNavigate } from 'react-router-dom';
 function LandingPage() {
     const navigate = useNavigate();
-    const [btnText, setBtnText] = useState(null);
+    const [btnText, setBtnText] = useState("GET STARTED");
     const handleClick = () => {
         console.log("jidhwihxo")
         var { provider, connectedAccount } = connectWallet();
