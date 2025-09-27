@@ -1,40 +1,27 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { supabase } from "../supabaseClient";
+// import { supabase } from "../supabaseClient";
 import { ethers } from "ethers";
-import PokiNFTABI from "../abis/PokiNFT.json";
+import PokiNFTABI from '../../consts/tokenabi.json'
+import PokemonCard from "@/components/PokimonCard";
 
 const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS";
 
 export default function StarterAnimation({ userAddress, provider, pythRNG }) {
-  const [pokemonList, setPokemonList] = useState([]);
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [selected, setSelected] = useState(null);
+
+  const [main, setMain] = useState({ name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img: './venu-thumbnail.png', main: './venu.png' })
   const [loading, setLoading] = useState(false);
 
-  // Fetch base data from Supabase
-  useEffect(() => {
-    async function fetchPokemon() {
-      const { data, error } = await supabase
-        .from("pokemon_models")
-        .select("*")
-        .in("modelId", [1, 2, 3]); // Charizard, Venusaur, Blastoise
-
-      if (error) console.error(error);
-      else {
-        // Add a "random" placeholder; stats will be set after RNG
-        setPokemonList([...data, { name: "Random", modelId: 0, spriteUrl: "/placeholder.png" }]);
-      }
-    }
-    fetchPokemon();
-  }, []);
+  const pokemonList = [
+    { id: 1, species: "Blastoise", nickname: "Blastoise", type: "Water", attack: 25, range: 2, exp: 0, level: 1, img: './blastoise-thumbnail.png', main: './blast.png' },
+    { id: 2, species: "Charizard", nickname: "Charizard", type: "Fire", attack: 25, range: 2, exp: 0, level: 1, img: './chariz-thumbnail.png', main: './chariz.png' },
+    { id: 3, species: "Venusaur", nickname: "Venusaur", type: "Grass", attack: 25, range: 2, exp: 0, level: 1, img: './venu-thumbnail.png', main: './venu.png' },
+  ];
 
   // Handle user selection
   const handleSelect = async (pokemon) => {
     if (!provider) return alert("Connect wallet first!");
     setLoading(true);
-
-    let chosenModelId = pokemon.modelId;
+    let chosenModelId = pokemon.id;
 
     // If random, call Pyth RNG for modelId (1-3)
     if (chosenModelId === 0) {
@@ -59,65 +46,29 @@ export default function StarterAnimation({ userAddress, provider, pythRNG }) {
       console.error(err);
       alert("Mint failed");
     }
-
     setLoading(false);
   };
 
   return (
-    <div className="starter-container">
-      {showAnimation && <h2 className="animated-text">Choose your starter Pokémon!</h2>}
-
-      <div className="pokemon-row">
-        {pokemonList.map((pokemon, idx) => (
-          <motion.div
-            key={idx}
-            className="pokemon-card"
-            initial={{ y: -200, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: idx * 0.3, type: "spring", stiffness: 500 }}
+    <div className="bg-black h-screen w-full flex flex-col justify-center items-center font-pixelify text-white ">
+      <h2 className="text-4xl mt-10">Choose your starter Pokémon!</h2>
+      <div className="flex h-screen w-full justify-center items-center gap-20">
+        {pokemonList.map((pokemon, index) => (
+          <PokemonCard
+            imageSrc={pokemon.img}
+            key={index}
+            name={pokemon.name}
+            type={pokemon.type}
+            attack={pokemon.attack}
+            range={pokemon.range}
+            exp={pokemon.exp}
+            level={pokemon.level}
             onClick={() => handleSelect(pokemon)}
-          >
-            <img src={pokemon.spriteUrl} alt={pokemon.name} width={96} height={96} />
-            <p>{pokemon.name}</p>
-          </motion.div>
+          />
         ))}
       </div>
 
       {loading && <p>Minting your Pokémon NFT...</p>}
-
-      <style jsx>{`
-        .starter-container {
-          text-align: center;
-          padding: 2rem;
-        }
-        .animated-text {
-          font-family: "Press Start 2P", monospace;
-          font-size: 1.5rem;
-          margin-bottom: 2rem;
-          animation: blink 1s infinite;
-        }
-        @keyframes blink {
-          0%, 50%, 100% { opacity: 1; }
-          25%, 75% { opacity: 0; }
-        }
-        .pokemon-row {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-        }
-        .pokemon-card {
-          cursor: pointer;
-          border: 2px solid gray;
-          border-radius: 8px;
-          padding: 0.5rem;
-          background-color: #f8f8f8;
-          transition: transform 0.2s, border-color 0.2s;
-        }
-        .pokemon-card:hover {
-          transform: scale(1.1);
-          border-color: gold;
-        }
-      `}</style>
     </div>
   );
 }
