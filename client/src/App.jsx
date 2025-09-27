@@ -12,6 +12,8 @@ import Profile from "./lib/pages/Profile";
 import StarterAnimation from "./lib/pages/FirstPokemonSelect";
 import { UserProvider } from "./contexts/UserContext";
 import { PokemonProvider } from "./contexts/PokemonContext";
+import Market from "./components/Market";
+
 function App() {
   return (
     <>
@@ -23,10 +25,9 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/first" element={<StarterAnimation />} />
-
             <Route path="/nft" element={<NFTTestPage />} />
-
             <Route path="/game" element={<Game />} />
+            <Route path="/market" element={<Market />} />
             <Route path="/lobby/create" element={<CreateLobby />} />
             <Route path="/lobby/join" element={<JoinLobby />} />
             <Route path="/lobby/room/:lobbyId" element={<LobbyRoom />} />

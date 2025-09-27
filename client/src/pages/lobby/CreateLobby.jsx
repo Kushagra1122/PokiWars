@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
+import { usePokemon } from '@/contexts/PokemonContext'; // Import the context
 
 export default function CreateLobby() {
   const navigate = useNavigate();
+  const { pokemonCollection } = usePokemon(); // Get pokemonCollection from context
   const [playerName, setPlayerName] = useState('');
-  const [selectedCharacter, setSelectedCharacter] = useState('ALAKAZAM');
+  const [selectedCharacter, setSelectedCharacter] = useState('');
   const [lobbySettings, setLobbySettings] = useState({
     map: { id: 'forest', name: 'Forest Map' },
     timeLimit: 15,
@@ -28,11 +30,27 @@ export default function CreateLobby() {
 
   const timeOptions = [5, 10, 15, 20, 30, 60];
   const stakeOptions = [10, 25, 50, 100, 250, 500, 1000];
-  const characters = ['ALAKAZAM', 'BLASTOISE', 'CHARIZARD'];
+
+  // Use pokemonCollection for characters, fallback to empty array
+  const characters = pokemonCollection && pokemonCollection.length > 0 
+    ? pokemonCollection 
+    : [];
+
+  // Set default selected character when pokemonCollection loads
+  useEffect(() => {
+    if (characters.length > 0 && !selectedCharacter) {
+      setSelectedCharacter(characters[0].name);
+    }
+  }, [characters, selectedCharacter]);
 
   const handleCreateLobby = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
+      return;
+    }
+
+    if (!selectedCharacter) {
+      setError('Please select a character');
       return;
     }
 
@@ -78,7 +96,6 @@ export default function CreateLobby() {
     }
   };
 
-  // Fix the map selection handler
   const handleMapChange = (e) => {
     const selectedMap = availableMaps.find(m => m.id === e.target.value);
     if (selectedMap) {
@@ -87,6 +104,11 @@ export default function CreateLobby() {
         map: selectedMap 
       }));
     }
+  };
+
+  // Get image source for character
+  const getCharacterImage = (character) => {
+    return character.image || `/src/assets/characters/${character.name}.png`;
   };
 
   return (
@@ -127,28 +149,43 @@ export default function CreateLobby() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">Choose Character</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {characters.map((char) => (
-                    <button
-                      key={char}
-                      onClick={() => setSelectedCharacter(char)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        selectedCharacter === char
-                          ? 'border-blue-500 bg-blue-600/20'
-                          : 'border-gray-600 bg-gray-700 hover:border-gray-500'
-                      }`}
+                {characters.length === 0 ? (
+                  <div className="text-center p-6 bg-gray-700 rounded-lg">
+                    <p className="text-gray-400">No Pokémon available in your collection</p>
+                    <button 
+                      onClick={() => navigate('/collection')}
+                      className="mt-2 text-blue-400 hover:text-blue-300"
                     >
-                      <div className="text-center">
-                        <img
-                          src={`/src/assets/characters/${char}.png`}
-                          alt={char}
-                          className="w-16 h-16 mx-auto mb-2"
-                        />
-                        <span className="text-sm">{char}</span>
-                      </div>
+                      Go to Collection
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {characters.map((char) => (
+                      <button
+                        key={char.name}
+                        onClick={() => setSelectedCharacter(char.name)}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          selectedCharacter === char.name
+                            ? 'border-blue-500 bg-blue-600/20'
+                            : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <img
+                            src={getCharacterImage(char)}
+                            alt={char.name}
+                            className="w-16 h-16 mx-auto mb-2 object-contain"
+                            onError={(e) => {
+                              e.target.src = '/src/assets/characters/default.png'; // Fallback image
+                            }}
+                          />
+                          <span className="text-sm">{char.name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -259,9 +296,9 @@ export default function CreateLobby() {
           <div className="mt-8 text-center">
             <button
               onClick={handleCreateLobby}
-              disabled={isCreating || !playerName.trim()}
+              disabled={isCreating || !playerName.trim() || !selectedCharacter || characters.length === 0}
               className={`px-8 py-4 rounded-lg text-lg font-semibold transition-colors ${
-                isCreating || !playerName.trim()
+                isCreating || !playerName.trim() || !selectedCharacter || characters.length === 0
                   ? 'bg-gray-600 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
               }`}
@@ -269,6 +306,12 @@ export default function CreateLobby() {
               {isCreating ? 'Creating Lobby...' : 'Create Lobby'}
             </button>
           </div>
+
+          {characters.length === 0 && (
+            <div className="mt-4 text-center text-yellow-400">
+              You need at least one Pokémon in your collection to create a lobby
+            </div>
+          )}
         </div>
       </div>
     </div>

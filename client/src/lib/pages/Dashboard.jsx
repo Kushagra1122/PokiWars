@@ -52,10 +52,9 @@ function Dashboard() {
     }
   }, [walletAddress, fetchNFTsForAddress]);
 
-  const handleMarketplaceClick = () => {
-    console.log('Navigate to Marketplace');
-    // Add navigation logic here
-  };
+    const handleMarketplaceClick = () => {
+        navigate('/market');
+    };
 
   const handleBattleClick = () => {
     console.log('Start Battle');
