@@ -1,5 +1,6 @@
+import TokenBalance from '@/components/BalanceTokens';
 import { Bell, User, Users } from 'lucide-react'
-import React, { useState, useEffect  } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
@@ -157,6 +158,7 @@ function Dashboard() {
                             >
                                 My Profile
                             </button>
+                            <TokenBalance walletAddress={walletAddress} />
                         </div>
                     )}
                 </div>
