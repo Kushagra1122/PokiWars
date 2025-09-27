@@ -10,19 +10,23 @@ function LandingPage() {
   const navigate = useNavigate()
   const { username, updateUsername, updateWalletAddress, walletAddress } = useUser()
   const [btnText, setBtnText] = useState('GET STARTED')
+  const [showUsernamePopup, setShowUsernamePopup] = useState(false)
   const [localUsername, setLocalUsername] = useState('')
+  const [connectedAccount, setConnectedAccount] = useState(null)
 
-  // ✅ New handleConnect function that checks Supabase
-  const handleConnect = async () => {
+  // Handle the initial "Get Started" click
+  const handleGetStarted = async () => {
     try {
-      const connectedAccount = await connectWallet()
-      updateWalletAddress(connectedAccount)
+      // First connect the wallet
+      const account = await connectWallet()
+      updateWalletAddress(account)
+      setConnectedAccount(account)
 
       // Check if user exists in Supabase
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('wallet_address', connectedAccount)
+        .eq('wallet_address', account)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -32,21 +36,37 @@ function LandingPage() {
       }
 
       if (data) {
-        // User exists → update context and navigate directly to dashboard
+        // User exists, redirect to dashboard
         updateUsername(data.name)
         navigate('/dashboard')
         return
       }
 
-      // User does not exist → save new user
-      if (localUsername.trim() === '') {
-        alert('Please enter a username')
-        return
-      }
+      // User doesn't exist, show username popup
+      setShowUsernamePopup(true)
+    } catch (err) {
+      console.error('Wallet connection error:', err)
+      alert('Failed to connect wallet. Please try again.')
+    }
+  }
 
+  // Handle username submission
+  const handleUsernameSubmit = async () => {
+    if (!localUsername.trim()) {
+      alert('Please enter a username')
+      return
+    }
+
+    if (!connectedAccount) {
+      alert('Wallet not connected. Please try again.')
+      return
+    }
+
+    try {
+      // Insert new user into Supabase
       const { error: insertError } = await supabase
         .from('users')
-        .insert([{ wallet_address: connectedAccount, name: localUsername }])
+        .insert([{ wallet_address: connectedAccount, name: localUsername.trim() }])
 
       if (insertError) {
         console.error('Supabase insert error:', insertError)
@@ -55,11 +75,20 @@ function LandingPage() {
       }
 
       // Update context with new username
-      updateUsername(localUsername)
+      updateUsername(localUsername.trim())
+      setShowUsernamePopup(false)
       navigate('/first')
     } catch (err) {
-      console.error('Wallet connection error:', err)
+      console.error('Error creating user:', err)
+      alert('Failed to create user. Please try again.')
     }
+  }
+
+  // Handle popup close
+  const handlePopupClose = () => {
+    setShowUsernamePopup(false)
+    setLocalUsername('')
+    setConnectedAccount(null)
   }
 
   // Check MetaMask connection on mount
@@ -69,7 +98,7 @@ function LandingPage() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' })
           if (accounts.length === 0) {
-            setBtnText('Connect Wallet')
+            setBtnText('GET STARTED')
           } else {
             setBtnText('Go to Dashboard')
             updateWalletAddress(accounts[0])
@@ -85,8 +114,15 @@ function LandingPage() {
     checkWalletConnection()
   }, [navigate, updateWalletAddress])
 
+  // Handle existing wallet connection
+  const handleExistingConnection = async () => {
+    if (walletAddress) {
+      navigate('/dashboard')
+    }
+  }
+
   return (
-    <div className="bg-black h-screen">
+    <div className="bg-black h-screen relative">
       <style jsx>{`
         @keyframes neon-glow {
           0% { box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 20px #0f0; }
@@ -95,6 +131,25 @@ function LandingPage() {
         .glow-button {
           animation: neon-glow 1.5s ease-in-out infinite alternate;
           border: 2px solid #0f0;
+        }
+        .popup-overlay {
+          background-color: rgba(0, 0, 0, 0.8);
+        }
+        .popup-container {
+          background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+          border: 2px solid #0f0;
+          box-shadow: 0 0 20px #0f0, inset 0 0 10px rgba(0, 255, 0, 0.1);
+        }
+        .username-input {
+          background: rgba(0, 0, 0, 0.7);
+          border: 1px solid #0f0;
+          color: white;
+          transition: all 0.3s ease;
+        }
+        .username-input:focus {
+          outline: none;
+          border-color: #0f0;
+          box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
         }
       `}</style>
 
@@ -129,19 +184,10 @@ function LandingPage() {
               <div>Aim. Stake. Conquer.</div>
             </div>
 
-            {/* Username input */}
-            <input
-              type="text"
-              placeholder="Enter username"
-              value={localUsername}
-              onChange={(e) => setLocalUsername(e.target.value)}
-              className="mb-6 p-2 text-white rounded"
-            />
-
             <div className="absolute right-20 bottom-20">
               <Button
-                onClick={handleConnect}
-                className="text-black w-[200px] h-[60px] glow-button relative"
+                onClick={btnText === 'GET STARTED' ? handleGetStarted : handleExistingConnection}
+                className="text-black px-4 py-6 glow-button relative"
                 variant="outline"
               >
                 <span className="text-2xl font-extrabold font-pixelify">
@@ -152,6 +198,55 @@ function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Username Popup */}
+      {showUsernamePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center popup-overlay">
+          <div className="popup-container p-8 rounded-lg max-w-md w-full mx-4">
+            <div className="text-center">
+              <h2 className="font-pixelify text-2xl text-lime-400 mb-6">
+                Choose Your Username
+              </h2>
+              
+              <div className="mb-6">
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={localUsername}
+                  onChange={(e) => setLocalUsername(e.target.value)}
+                  className="username-input w-full p-3 rounded font-pixelify text-lg"
+                  maxLength={20}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleUsernameSubmit()
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-center gap-4">
+                <Button
+                  onClick={handleUsernameSubmit}
+                  className="text-black px-6 py-2"
+                  variant="outline"
+                  disabled={!localUsername.trim()}
+                >
+                  <span className="font-pixelify font-bold">OK</span>
+                </Button>
+                
+                <Button
+                  onClick={handlePopupClose}
+                  className="text-black px-6 py-2 bg-red-400"
+                  variant="outline"
+                >
+                  <span className="font-pixelify font-bold">Cancel</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
