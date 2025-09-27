@@ -5,17 +5,18 @@ import "./App.css";
 import Dashboard from "./lib/pages/Dashboard";
 import Profile from "./lib/pages/Profile";
 import StarterAnimation from "./lib/pages/FirstPokemonSelect";
+import NFTTestPage from "./lib/pages/NFTTest";
 
 function App() {
   return (
     <>
-        
-        <Profile/>
-        {/* <LandingPage/> */}
-        {/* <Dashboard/> */}
-        {/* <StarterAnimation/> */}
 
-        {/* <Routes>  
+      {/* <Profile/> */}
+      {/* <LandingPage/> */}
+      <Dashboard/>
+      {/* <StarterAnimation/> */}
+      {/* <NFTTestPage /> */}
+      {/* <Routes>  
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
