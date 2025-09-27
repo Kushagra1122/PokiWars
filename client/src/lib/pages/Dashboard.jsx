@@ -39,9 +39,10 @@ const AMOY_CONFIG = {
 
 function Dashboard() {
     const navigate = useNavigate();
+    const { main, pokemonCollection, updateMainPokemon: setMain } = usePokemon();
     // const { main, pokemonCollection, updateMainPokemon } = usePokemon();
     const [hoveredNav, setHoveredNav] = useState(null);
-    const [main, setMain] = useState(null);
+    // const [main, setMain] = useState(null);
     const [walletAddress, setWalletAddress] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [ownedNFTs, setOwnedNFTs] = useState([]);
@@ -49,6 +50,7 @@ function Dashboard() {
     const [networkError, setNetworkError] = useState('');
     const [currentNetwork, setCurrentNetwork] = useState('');
 
+    
     // Check network and wallet connection on mount
     useEffect(() => {
         checkWalletConnection();
