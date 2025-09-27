@@ -24,6 +24,8 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/first" element={<StarterAnimation />} />
 
+            <Route path="/nft" element={<NFTTestPage />} />
+
             <Route path="/game" element={<Game />} />
             <Route path="/lobby/create" element={<CreateLobby />} />
             <Route path="/lobby/join" element={<JoinLobby />} />

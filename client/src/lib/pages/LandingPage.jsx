@@ -10,32 +10,13 @@ function LandingPage() {
   const navigate = useNavigate()
   const { username, updateUsername, updateWalletAddress, walletAddress } = useUser()
   const [btnText, setBtnText] = useState('GET STARTED')
-
-  // Save walletAddress and username to localStorage whenever they change
-  useEffect(() => {
-    if (walletAddress) {
-      localStorage.setItem('walletAddress', walletAddress)
-    } else {
-      localStorage.removeItem('walletAddress')
-    }
-  }, [walletAddress])
-
-  useEffect(() => {
-    if (username) {
-      localStorage.setItem('username', username)
-    } else {
-      localStorage.removeItem('username')
-    }
-  }, [username])
   const [localUsername, setLocalUsername] = useState('')
 
+  // ✅ New handleConnect function that checks Supabase
   const handleConnect = async () => {
     try {
       const connectedAccount = await connectWallet()
       updateWalletAddress(connectedAccount)
-
-      // Store immediately after connecting
-      localStorage.setItem('walletAddress', connectedAccount)
 
       // Check if user exists in Supabase
       const { data, error } = await supabase
@@ -51,9 +32,8 @@ function LandingPage() {
       }
 
       if (data) {
-        // User exists → navigate directly to dashboard
-        localStorage.setItem('username', data.name || "")
-        setUsername(data.name || "")
+        // User exists → update context and navigate directly to dashboard
+        updateUsername(data.name)
         navigate('/dashboard')
         return
       }
@@ -74,7 +54,6 @@ function LandingPage() {
         return
       }
 
-      localStorage.setItem('username', username)
       // Update context with new username
       updateUsername(localUsername)
       navigate('/first')
@@ -83,6 +62,7 @@ function LandingPage() {
     }
   }
 
+  // Check MetaMask connection on mount
   useEffect(() => {
     async function checkWalletConnection() {
       if (window.ethereum && window.ethereum.isMetaMask) {
@@ -90,8 +70,6 @@ function LandingPage() {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' })
           if (accounts.length === 0) {
             setBtnText('Connect Wallet')
-            setWalletAddress('')
-            localStorage.removeItem('walletAddress')
           } else {
             setBtnText('Go to Dashboard')
             updateWalletAddress(accounts[0])
@@ -107,28 +85,18 @@ function LandingPage() {
     checkWalletConnection()
   }, [navigate, updateWalletAddress])
 
-  const unlinkWallet = () => {
-    setWalletAddress('')
-    setUsername('')
-    localStorage.removeItem('walletAddress')
-    localStorage.removeItem('username')
-    setBtnText('Connect Wallet')
-    // Optionally redirect user or refresh UI as needed
-  }
-
   return (
     <div className="bg-black h-screen">
       <style jsx>{`
-        @keyframes neon-glow {
-          0% { box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 20px #0f0; }
-          100% { box-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0, 0 0 40px #0f0; }
-        }
-        .glow-button {
-          animation: neon-glow 1.5s ease-in-out infinite alternate;
-          border: 2px solid #0f0;
-        }
-      `}</style>
-
+        @keyframes neon-glow {
+          0% { box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 20px #0f0; }
+          100% { box-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0, 0 0 40px #0f0; }
+        }
+        .glow-button {
+          animation: neon-glow 1.5s ease-in-out infinite alternate;
+          border: 2px solid #0f0;
+        }
+      `}</style>
 
       <div style={{ width: '100%', height: '100%', position: 'absolute' }}>
         <PixelBlast
@@ -151,18 +119,15 @@ function LandingPage() {
           transparent={true}
         />
 
-
         <div className="absolute inset-0 flex gap-80 items-center justify-center z-10 pointer-events-none">
           <div className="font-pixelify pointer-events-none absolute m-5 top-4 left-4 text-lime-100 text-6xl">
             POKIWARS
           </div>
 
-
           <div className="font-pixelify text-white text-6xl pointer-events-auto flex items-center justify-center flex-col">
             <div className="bg-white/0 p-10 rounded-2xl mb-8">
               <div>Aim. Stake. Conquer.</div>
             </div>
-
 
             {/* Username input */}
             <input
@@ -172,7 +137,6 @@ function LandingPage() {
               onChange={(e) => setLocalUsername(e.target.value)}
               className="mb-6 p-2 text-white rounded"
             />
-
 
             <div className="absolute right-20 bottom-20">
               <Button
@@ -184,23 +148,10 @@ function LandingPage() {
                   {btnText}
                 </span>
               </Button>
-              {/* Show Unlink Wallet button only if wallet is connected */}
-              {walletAddress && (
-                <button
-                  onClick={unlinkWallet}
-                  className="text-black w-[200px] h-[60px] glow-button relative"
-                >
-                  <span className="text-2xl font-extrabold font-pixelify">
-                    Disconnect Wallet
-                  </span>
-
-                </button>
-              )}
             </div>
           </div>
         </div>
       </div>
-
     </div>
   )
 }
