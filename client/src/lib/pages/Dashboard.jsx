@@ -1,14 +1,32 @@
+import TokenBalance from '@/components/BalanceTokens';
 import { Bell, User, Users } from 'lucide-react'
-import React, { useState, useEffect  } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/8bit/drawer"
+import { Button } from '@/components/ui/8bit/button';
+import PokemonCard from '@/components/PokimonCard';
 
 function Dashboard() {
     const navigate = useNavigate();
 
     const [hoveredNav, setHoveredNav] = useState(null);
-    const [main, setMain] = useState('./venu.png');
+    
+    //update this state addd.
+    const [main, setMain] = useState({ name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img:'./venu-thumbnail.png', main:'./venu.png' })
+    
+    
     const [walletAddress, setWalletAddress] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
 
     // Check MetaMask connection on mount
     useEffect(() => {
@@ -43,8 +61,8 @@ function Dashboard() {
     };
 
     const handleSwapClick = () => {
-        console.log('Open Swap Menu');
-        // Add your swap logic here
+        console.log('Open Swap Screen');
+
     };
 
     // Show/hide profile dropdown on profile icon click
@@ -66,6 +84,21 @@ function Dashboard() {
         // Add your users logic here
     };
 
+    //TODO: replace with original
+    const samplePokemon = [
+        { name: "Pikachu", type: "Electric", attack: 75, range: 4, exp: 85, level: 12, img:'./venu-thumbnail.png', main:'./venu.png' },
+        { name: "Charizard", type: "Fire", attack: 95, range: 5, exp: 45, level: 18, img:'./blastoise-thumbnail.png', main:'./blast.png' },
+        { name: "Blastoise", type: "Water", attack: 80, range: 3, exp: 90, level: 15, img:'./chariz-thumbnail.png', main:'./chariz.png' },
+        { name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img:'./venu-thumbnail.png', main:'./venu.png' },
+        { name: "Alakazam", type: "Psychic", attack: 70, range: 6, exp: 65, level: 20, img:'./blastoise-thumbnail.png', main:'./blast.png' },
+        { name: "Machamp", type: "Fighting", attack: 100, range: 2, exp: 10, level: 14, img:'./chariz-thumbnail.png', main:'./chariz.png' }
+      ];
+
+    
+    //Todo: change this accordinglyy 
+    const pokemonSelect = (pokemon) => {
+        setMain(pokemon)
+    }
     return (
         <div className="bg-black h-screen w-full flex justify-center overflow-hidden">
             <div className="absolute  top-0 left-0 w-full h-full ">
@@ -157,6 +190,7 @@ function Dashboard() {
                             >
                                 My Profile
                             </button>
+                            <TokenBalance walletAddress={walletAddress} />
                         </div>
                     )}
                 </div>
@@ -202,17 +236,49 @@ function Dashboard() {
             </button>
 
             {/* Bouncing character */}
-            <div className='z-10  bounce-animation flex items-center justify-center'>
-                <img src={main} alt="Character" className="max-w-md max-h-96 object-contain" />
+            <div className='max-h-96 z-10 bounce-animation mt-22 flex items-center justify-center'>
+                <img src={main.main} alt="Character" className="max-w-md max-h-96 object-contain" />
             </div>
 
-            {/* Swap button */}
-            <button
-                onClick={handleSwapClick}
-                className='glow-button px-8 py-4 m-4 text-white text-4xl flex justify-center items-center border-2 border-white/70 absolute bottom-0 font-pixelify bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer'
-            >
-                swap
-            </button>
+
+            <Drawer>
+                <DrawerTrigger className="font-pixelify glow-button px-8 py-4 m-4 text-white text-4xl  border-2 border-white/70 absolute bottom-0 bg-black/50 backdrop-blur-sm rounded-lg cursor-pointer">
+                    Swap
+                </DrawerTrigger>
+
+                <DrawerContent className="h-110">
+                    <DrawerHeader>
+                        <DrawerTitle className="text-2xl">SELECT YOUR MAIN.</DrawerTitle>
+                        <DrawerDescription>You'll take this Pokimon to battle</DrawerDescription>
+                    </DrawerHeader>
+
+                    <div className='flex justify-center items-center gap-10 h-70 left-4 top-30 w-full absolute'>
+                        <div className="flex justify-center gap-2 items-center gap flex-wrap">
+                            {samplePokemon.map((pokemon, index) => (
+                            <PokemonCard
+                                imageSrc={pokemon.img}
+                                key={index}
+                                name={pokemon.name}
+                                type={pokemon.type}
+                                attack={pokemon.attack}
+                                range={pokemon.range}
+                                exp={pokemon.exp}
+                                level={pokemon.level}
+                                onClick={()=>pokemonSelect(pokemon)}
+                            />
+                            ))}
+                        </div>
+                    </div>
+
+
+                    {/* <DrawerFooter className="flex justify-centre items-end">
+                        <Button className="max-w-30 ">LET'S GO</Button>
+                    </DrawerFooter> */}
+                        <DrawerClose className="absolute m-4 top-0 right-0">
+                            <Button variant="outline">Cancel</Button>
+                        </DrawerClose>
+                </DrawerContent>
+            </Drawer>
         </div>
     )
 }
