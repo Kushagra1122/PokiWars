@@ -5,6 +5,7 @@ import { connectWalletManually } from '@/lib/connectWallet'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '@/contexts/UserContext'
+import { tokenApi } from '@/lib/api/tokenApi'
 
 function LandingPage() {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ function LandingPage() {
   const [showUsernamePopup, setShowUsernamePopup] = useState(false)
   const [localUsername, setLocalUsername] = useState('')
   const [connectedAccount, setConnectedAccount] = useState(null)
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
 
   // Handle the initial "Get Started" click
   const handleGetStarted = async () => {
@@ -65,6 +67,8 @@ function LandingPage() {
       return
     }
 
+    setIsCreatingAccount(true)
+
     try {
       // Insert new user into Supabase
       const { error: insertError } = await supabase
@@ -74,7 +78,23 @@ function LandingPage() {
       if (insertError) {
         console.error('Supabase insert error:', insertError)
         alert('Could not save user: ' + insertError.message)
+        setIsCreatingAccount(false)
         return
+      }
+
+      // Request tokens for new user
+      console.log('🎉 New user created! Requesting 500 PKT tokens...')
+      try {
+        const tokenResult = await tokenApi.transferTokens(connectedAccount)
+        if (tokenResult.success) {
+          console.log('✅ Tokens transferred successfully for new user')
+        } else {
+          console.warn('⚠️ Token transfer failed for new user:', tokenResult.error)
+          // Don't block the flow if token transfer fails
+        }
+      } catch (tokenError) {
+        console.warn('⚠️ Token transfer error for new user:', tokenError)
+        // Don't block the flow if token transfer fails
       }
 
       // Update context with new username
@@ -84,6 +104,8 @@ function LandingPage() {
     } catch (err) {
       console.error('Error creating user:', err)
       alert('Failed to create user. Please try again.')
+    } finally {
+      setIsCreatingAccount(false)
     }
   }
 
@@ -219,9 +241,11 @@ function LandingPage() {
                   onClick={handleUsernameSubmit}
                   className="text-black px-6 py-2"
                   variant="outline"
-                  disabled={!localUsername.trim()}
+                  disabled={!localUsername.trim() || isCreatingAccount}
                 >
-                  <span className="font-pixelify font-bold">OK</span>
+                  <span className="font-pixelify font-bold">
+                    {isCreatingAccount ? 'Creating Account...' : 'OK'}
+                  </span>
                 </Button>
                 
                 <Button

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import minimalNFTABI from '../../consts/nftabi.json';
 import minimalTokenABI from '../../consts/tokenabi.json';
@@ -126,6 +127,7 @@ const pokemonList = [
 ];
 
 export default function StarterAnimation() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userAddress, setUserAddress] = useState("");
   const [status, setStatus] = useState("");
@@ -230,8 +232,9 @@ export default function StarterAnimation() {
 
       // Check if user needs tokens (balance is 0 or very low)
       if (parseFloat(formattedBalance) === 0) {
-        setStatus("🪙 No tokens detected. Requesting 500 PKT tokens...");
-        await requestTokens(address);
+        setStatus("🪙 No tokens detected. Click 'Request 500 PKT Tokens' to get tokens.");
+      } else {
+        console.log('✅ Balance is not 0:', formattedBalance);
       }
 
       // Get token allowance
@@ -246,7 +249,9 @@ export default function StarterAnimation() {
     console.log('\n=== CLIENT: Request Tokens Function ===');
     console.log('Address:', address);
     console.log('Is already requesting:', isRequestingTokens);
+    console.log('Current balance:', pokiTokenBalance);
     
+    // Check if already requesting
     if (isRequestingTokens) {
       console.log('❌ Already requesting tokens, skipping');
       return;
@@ -265,9 +270,10 @@ export default function StarterAnimation() {
         setStatus("✅ 500 PKT tokens transferred successfully! Refreshing balance...");
         // Wait a moment then refresh the balance
         setTimeout(async () => {
-          console.log('Refreshing contract data after 2 seconds...');
+          console.log('Refreshing contract data after 3 seconds...');
           await loadContractData(address);
-        }, 2000);
+          setStatus("✅ Balance updated! You can now proceed to mint your Pokémon.");
+        }, 3000);
       } else {
         console.log('❌ Transfer failed:', result.error);
         setStatus(`❌ Token transfer failed: ${result.error}`);
@@ -463,9 +469,13 @@ export default function StarterAnimation() {
       const receipt = await tx.wait();
 
       if (receipt.status === 1) {
-        setStatus(`🎉 ${pokemon.name} minted successfully!`);
+        setStatus(`🎉 ${pokemon.name} minted successfully! Redirecting to dashboard...`);
         // Optionally reload contract data to update balances/allowances
         await loadContractData(userAddress);
+        // Redirect to dashboard after successful minting
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       } else {
         setStatus("❌ Mint transaction failed.");
       }
@@ -557,14 +567,21 @@ export default function StarterAnimation() {
 
         <h2 className="text-4xl mt-2 mb-8 text-center">Choose your starter Pokémon!</h2>
 
-        {/* Request tokens button - show if balance is 0 or very low */}
-        {userAddress && parseFloat(pokiTokenBalance) === 0 && (
+        {/* Show requesting state */}
+        {userAddress && isRequestingTokens && (
+          <div className="mb-4 bg-blue-600 px-6 py-2 rounded text-center">
+            Requesting Tokens... Please wait
+          </div>
+        )}
+
+        {/* Manual request tokens button - only show if balance is 0 and user is not new */}
+        {userAddress && parseFloat(pokiTokenBalance) === 0 && !isRequestingTokens && (
           <button
             onClick={() => requestTokens(userAddress)}
             disabled={isRequestingTokens}
             className="mb-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:bg-gray-600 transition-colors"
           >
-            {isRequestingTokens ? "Requesting Tokens..." : "Request 500 PKT Tokens"}
+            Request 500 PKT Tokens
           </button>
         )}
 
