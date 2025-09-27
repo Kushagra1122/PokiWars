@@ -1,5 +1,6 @@
 import { Bell, User, Users } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useState, useEffect  } from 'react'
+import { useNavigate } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import {
     Drawer,
@@ -14,13 +15,40 @@ import {
 import { Button } from '@/components/ui/8bit/button';
 import PokemonCard from '@/components/PokimonCard';
 
-
 function Dashboard() {
-    const [hoveredNav, setHoveredNav] = useState(null);
     const navigate = useNavigate();
 
+    const [hoveredNav, setHoveredNav] = useState(null);
+    
     //update this state addd.
     const [main, setMain] = useState({ name: "Venusaur", type: "Grass", attack: 85, range: 4, exp: 30, level: 16, img:'./venu-thumbnail.png', main:'./venu.png' })
+    
+    
+    const [walletAddress, setWalletAddress] = useState(null);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+
+    // Check MetaMask connection on mount
+    useEffect(() => {
+        async function checkWalletConnection() {
+            if (window.ethereum && window.ethereum.isMetaMask) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length === 0) {
+                        navigate('/'); // Not connected, redirect
+                    } else {
+                        setWalletAddress(accounts[0]);
+                    }
+                } catch (err) {
+                    console.error('Error checking wallet connection:', err);
+                    navigate('/');
+                }
+            } else {
+                navigate('/'); // MetaMask not installed
+            }
+        }
+        checkWalletConnection();
+    }, [navigate]);
 
     const handleMarketplaceClick = () => {
         console.log('Navigate to Marketplace');
@@ -37,9 +65,13 @@ function Dashboard() {
 
     };
 
+    // Show/hide profile dropdown on profile icon click
     const handleProfileClick = () => {
-        console.log('Open Profile');
-        // Add your profile logic here
+        setShowProfileDropdown(prev => !prev);
+    };
+    const handleMyProfileClick = () => {
+        navigate('/profile');
+        setShowProfileDropdown(false);
     };
 
     const handleNotificationsClick = () => {
@@ -149,6 +181,17 @@ function Dashboard() {
                     <div className={`tooltip ${hoveredNav === 'profile' ? 'show' : ''}`} style={{ top: '70px', left: '50%', transform: 'translateX(-50%)' }}>
                         Profile
                     </div>
+                    {showProfileDropdown && (
+                        <div className="absolute top-full mt-2 right-0 w-56 bg-black bg-opacity-90 border border-white/50 rounded-lg p-4 text-white z-20">
+                            <p className="break-words mb-2"><strong>Wallet:</strong> {walletAddress}</p>
+                            <button
+                                onClick={handleMyProfileClick}
+                                className="w-full px-2 py-1 bg-lime-600 hover:bg-lime-700 rounded"
+                            >
+                                My Profile
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div
