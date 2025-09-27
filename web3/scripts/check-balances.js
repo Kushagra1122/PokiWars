@@ -6,7 +6,7 @@ async function checkBalances() {
 
   // Configuration
   const PRIVATE_KEY = "947dfbad2bf17bd1fdca3f21814b48934b10ad98fa70812ad629e5d9baf1fd24";
-  const CONTRACT_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483";
+  const CONTRACT_ADDRESS = "0xa599dac243deca9b35c57639dc1dfb1f3368e26b";
   const ADDRESS_1 = "0x71F22eDd5B4df27C61BcddAE69DF63a9a012c127";
   const ADDRESS_2 = "0x5c084030bF97C84ed3873b731e77e6dBDEdcB1E9";
 

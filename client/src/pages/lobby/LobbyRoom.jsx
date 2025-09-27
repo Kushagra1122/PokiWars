@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
+import StakingPanel from '../../components/StakingPanel';
+import { useUser } from '../../contexts/UserContext';
 
 export default function LobbyRoom() {
   const { lobbyId } = useParams();
   const navigate = useNavigate();
+  const { walletAddress } = useUser();
   
   const [lobby, setLobby] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -13,6 +16,7 @@ export default function LobbyRoom() {
   const [currentPlayerId, setCurrentPlayerId] = useState(null);
   const [gameStartTimer, setGameStartTimer] = useState(null);
   const [timeUntilStart, setTimeUntilStart] = useState(0);
+  const [stakedPlayers, setStakedPlayers] = useState(new Set());
 
   const availableMaps = [
     { id: 'forest', name: 'Forest Map' },
@@ -228,6 +232,18 @@ export default function LobbyRoom() {
     });
   };
 
+  const handleStakeSuccess = (result) => {
+    console.log('Staking successful:', result);
+    // Add player to staked players set
+    setStakedPlayers(prev => new Set([...prev, walletAddress]));
+    setError(''); // Clear any previous errors
+  };
+
+  const handleStakeError = (error) => {
+    console.error('Staking failed:', error);
+    setError('Staking failed: ' + error.message);
+  };
+
   const handleStartGame = () => {
     if (!isHost) {
       setError('Only the host can start the game');
@@ -246,6 +262,16 @@ export default function LobbyRoom() {
 
     if (lobby.players.length < 2) {
       setError('Need at least 2 players to start the game');
+      return;
+    }
+
+    // Check if all players have staked
+    const allPlayersStaked = lobby.players.every(player => 
+      stakedPlayers.has(player.walletAddress) || player.walletAddress === walletAddress
+    );
+
+    if (!allPlayersStaked) {
+      setError('All players must stake 10 PKT before starting the game');
       return;
     }
 
@@ -323,6 +349,15 @@ export default function LobbyRoom() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lobby Settings Panel */}
           <div className="lg:col-span-1">
+            {/* Staking Panel */}
+            {walletAddress && (
+              <StakingPanel
+                userAddress={walletAddress}
+                onStakeSuccess={handleStakeSuccess}
+                onStakeError={handleStakeError}
+              />
+            )}
+            
             <div className="bg-gray-800 rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Lobby Settings</h2>
               
@@ -546,9 +581,10 @@ export default function LobbyRoom() {
               <div className="mt-6 p-4 bg-gray-700 rounded-lg">
                 <h3 className="font-semibold mb-2">Game Rules</h3>
                 <ul className="text-sm text-gray-300 space-y-1">
+                  <li>• All players must stake 10 PKT to join the game</li>
                   <li>• All players must be ready to start the game</li>
                   <li>• Only the host can modify lobby settings</li>
-                  <li>• {lobby.settings.isRated ? `Rated match with ${lobby.settings.stake} coin stake` : 'Casual match - no coins at stake'}</li>
+                  <li>• Winners get 50-30-20% of the total pool</li>
                   <li>• Game duration: {lobby.settings.timeLimit} minutes</li>
                 </ul>
               </div>

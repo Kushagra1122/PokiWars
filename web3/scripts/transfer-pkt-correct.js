@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 
 // CORRECTED Contract configuration
-const POKI_TOKEN_ADDRESS = "0x80e044c711a6904950ff6cbb8f3bdb18877be483"; // The verified contract
+const POKI_TOKEN_ADDRESS = "0xa599dac243deca9b35c57639dc1dfb1f3368e26b"; // The verified contract
 const FROM_ADDRESS = "0x71F22eDd5B4df27C61BcddAE69DF63a9a012c127";
 const TO_ADDRESS = "0x5c084030bF97C84ed3873b731e77e6dBDEdcB1E9";
 const TRANSFER_AMOUNT = ethers.parseEther("500"); // 500 PKT tokens

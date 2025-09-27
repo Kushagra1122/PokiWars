@@ -22,7 +22,7 @@ PRIVATE_KEY=your_private_key_here
 
 **Note:** RPC URL and contract address are hardcoded:
 - RPC: Polygon Mainnet (`https://polygon-rpc.com/`)
-- Contract: `0x80e044c711a6904950ff6cbb8f3bdb18877be483`
+- Contract: `0xa599dac243deca9b35c57639dc1dfb1f3368e26b`
 
 ## API Endpoints
 
@@ -83,4 +83,4 @@ curl -X POST http://localhost:3001/transfer-tokens \
 - The contract owner must have at least 500 tokens
 - The API uses the private key from environment variables to sign transactions
 - Uses Polygon Mainnet RPC
-- Contract address is hardcoded: `0x80e044c711a6904950ff6cbb8f3bdb18877be483`
+- Contract address is hardcoded: `0xa599dac243deca9b35c57639dc1dfb1f3368e26b`

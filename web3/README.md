@@ -99,7 +99,7 @@ npm run deploy:polygon
 
 ## Contract Address
 
-The deployed contract address is: `0x80e044c711a6904950ff6cbb8f3bdb18877be483`
+The deployed contract address is: `0xa599dac243deca9b35c57639dc1dfb1f3368e26b`
 
 ## Usage Examples
 

@@ -17,6 +17,7 @@
     "check:contract": "hardhat run scripts/check-contract-on-explorer.js --network polygon",
     "transfer:pkt": "hardhat run scripts/transfer-pkt-tokens.js --network polygon",
     "check:balances": "node scripts/check-balances.js",
+    "distribute:winnings": "node scripts/distribute-winnings.js",
     "node": "hardhat node",
     "clean": "hardhat clean"
   },
