@@ -208,6 +208,7 @@ function Dashboard() {
 
     // Fetch NFTs from blockchain
     async function fetchNFTs(address) {
+        console.log('Fetching NFTs for address:', address);
         if (!address) return;
 
         setLoading(true);
@@ -222,14 +223,15 @@ function Dashboard() {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const contract = new ethers.Contract(POKI_NFT_ADDRESS, minimalNFTABI, provider);
             const balance = await contract.balanceOf(address);
-
+            console.log(provider, contract, balance);
             const nfts = [];
             for (let i = 0; i < balance.toNumber(); i++) {
+                console.log('Fetching NFT index:', i);
                 try {
                     const tokenId = await contract.tokenOfOwnerByIndex(address, i);
                     const tokenURI = await contract.tokenURI(tokenId);
                     const attributes = await contract.getAttributes(tokenId);
-
+                    console.log('Fetched tokenId:', tokenId.toString(), 'tokenURI:', tokenURI, 'attributes:', attributes);
                     const pokemonData = {
                         tokenId: tokenId.toNumber(),
                         name: `PokiNFT #${tokenId.toString()}`,
@@ -241,8 +243,8 @@ function Dashboard() {
                         health: parseInt(attributes.health.toString()),
                         defense: parseInt(attributes.defense.toString()),
                         speed: parseInt(attributes.speed.toString()),
-                        img: getImageFromTrait(parseInt(attributes.specialTrait.toString())),
-                        main: getMainImageFromTrait(parseInt(attributes.specialTrait.toString())),
+                        img: tokenURI,
+                        main: tokenURI,
                         attributes: {
                             level: attributes.level.toString(),
                             xp: attributes.xp.toString(),
@@ -254,7 +256,7 @@ function Dashboard() {
                             specialTrait: attributes.specialTrait.toString(),
                         }
                     };
-
+                    console.log('Parsed NFT data:', pokemonData);
                     nfts.push(pokemonData);
 
                     if (i === 0 && !main) {

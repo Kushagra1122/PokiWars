@@ -10,6 +10,7 @@ import NFTTestPage from "./lib/pages/NFTTest";
 import CreateLobby from "./pages/lobby/CreateLobby";
 import LobbyRoom from "./pages/lobby/LobbyRoom";
 import JoinLobby from "./pages/lobby/JoinLobby";
+import LandingPage from "./lib/pages/LandingPage";
 function App() {
   return (
     <>
