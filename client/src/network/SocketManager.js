@@ -1,12 +1,15 @@
 import { io } from "socket.io-client";
-import { discoverGameServers, getBestServerUrl, quickConnectionTest } from "../utils/networkDiscovery";
 
 class SocketManager {
   constructor(scene = null) {
     this.scene = scene;
     this.socket = null;
-    // Try multiple connection options for network compatibility
-    this.serverUrls = ["http://10.52.117.24:3001","http://172.18.240.1:3001"];
+    // Simplified server URL approach - start with the most reliable ones
+    this.serverUrls = [
+      "http://localhost:3001", // Local development
+      `http://${window.location.hostname}:3001`, // Use same hostname as the web app
+      "http://127.0.0.1:3001", // Local development alternative
+    ];
     this.currentUrlIndex = 0;
     this.customServerUrl = null; // Allow manual server URL override
   }
@@ -14,7 +17,7 @@ class SocketManager {
   // Set a custom server URL (for manual configuration)
   setCustomServerUrl(url) {
     this.customServerUrl = url;
-    console.log(`🔧 Custom server URL set: ${url}`);
+    console.log(`Custom server URL set: ${url}`);
   }
 
   // Get the current server URL being used
@@ -25,7 +28,7 @@ class SocketManager {
     if (this.currentUrlIndex < this.serverUrls.length) {
       return this.serverUrls[this.currentUrlIndex];
     }
-    return null;
+    return this.serverUrls[0]; // Fallback to first URL
   }
 
   // Basic connection without game-specific setup
@@ -42,45 +45,31 @@ class SocketManager {
   async tryConnectWithFallback() {
     // First try custom server URL if set
     if (this.customServerUrl) {
-      console.log(`🔄 Attempting to connect to custom server: ${this.customServerUrl}`);
+      console.log(`Attempting to connect to custom server: ${this.customServerUrl}`);
       try {
         const socket = await this.connectToUrl(this.customServerUrl);
         return socket;
       } catch (error) {
-        console.warn(`❌ Failed to connect to custom server ${this.customServerUrl}:`, error.message);
+        console.warn(`Failed to connect to custom server ${this.customServerUrl}:`, error.message);
       }
     }
 
     // Then try the predefined URLs
     for (let i = this.currentUrlIndex; i < this.serverUrls.length; i++) {
       const serverUrl = this.serverUrls[i];
-      console.log(`🔄 Attempting to connect to: ${serverUrl} (attempt ${i + 1}/${this.serverUrls.length})`);
+      console.log(`Attempting to connect to: ${serverUrl} (attempt ${i + 1}/${this.serverUrls.length})`);
 
       try {
         const socket = await this.connectToUrl(serverUrl);
         this.currentUrlIndex = i; // Remember successful URL
         return socket;
       } catch (error) {
-        console.warn(`❌ Failed to connect to ${serverUrl}:`, error.message);
+        console.warn(`Failed to connect to ${serverUrl}:`, error.message);
       }
-    }
-
-    // If predefined URLs failed, try network discovery
-    console.log("🔍 Predefined URLs failed, starting network discovery...");
-    try {
-      const discoveredServers = await discoverGameServers();
-      if (discoveredServers.length > 0) {
-        const bestUrl = getBestServerUrl(discoveredServers);
-        console.log(`🎯 Found server via discovery: ${bestUrl}`);
-        const socket = await this.connectToUrl(bestUrl);
-        return socket;
-      }
-    } catch (error) {
-      console.warn("❌ Network discovery failed:", error.message);
     }
 
     // All methods failed
-    throw new Error(`Failed to connect to any server. Tried: ${this.serverUrls.join(', ')} and network discovery`);
+    throw new Error(`Failed to connect to any server. Tried: ${this.serverUrls.join(', ')}`);
   }
 
   // Connect to a specific URL
@@ -88,24 +77,26 @@ class SocketManager {
     return new Promise((resolve, reject) => {
       this.socket = io(serverUrl, {
         transports: ["websocket", "polling"],
-        timeout: 10000,
-        forceNew: true,
+        timeout: 20000,
+        forceNew: false,
         autoConnect: true,
-        reconnection: false, // We'll handle reconnection manually
+        reconnection: true, // Enable reconnection for better stability
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000,
       });
 
       this.socket.on("connect", () => {
-        console.log(`✅ Successfully connected to server: ${serverUrl} (${this.socket.id})`);
+        console.log(`Successfully connected to server: ${serverUrl} (${this.socket.id})`);
         resolve(this.socket);
       });
 
       this.socket.on("connect_error", (error) => {
-        console.error(`❌ Connection error to ${serverUrl}:`, error.message);
+        console.error(`Connection error to ${serverUrl}:`, error.message);
         reject(error);
       });
 
       this.socket.on("disconnect", (reason) => {
-        console.log(`🔌 Disconnected from server ${serverUrl}:`, reason);
+        console.log(`Disconnected from server ${serverUrl}:`, reason);
       });
 
       // Set a timeout for connection
@@ -113,48 +104,36 @@ class SocketManager {
         if (!this.socket.connected) {
           reject(new Error(`Connection timeout to ${serverUrl}`));
         }
-      }, 8000);
+      }, 10000);
     });
   }
 
   // Game-specific connection
   async connectForGame(selectedChar) {
-    try {
-      console.log("🎮 Connecting for game with character:", selectedChar);
-      await this.connect();
-      
-      if (!this.socket || !this.socket.connected) {
-        throw new Error("Failed to establish socket connection");
+    await this.connect();
+    
+    // Get additional game data from registry if available (from lobby)
+    const gameData = this.scene && this.scene.registry.get("gameData");
+    const playersWithCharacters = gameData && gameData.playersWithCharacters;
+    
+    // Try to find the correct character for this socket
+    let characterToUse = selectedChar;
+    if (playersWithCharacters && this.socket && this.socket.id) {
+      const playerData = playersWithCharacters[this.socket.id];
+      if (playerData && playerData.char) {
+        characterToUse = playerData.char;
+        console.log(`Using character from lobby data: ${characterToUse}`);
       }
-      
-      // Get additional game data from registry if available (from lobby)
-      const gameData = this.scene && this.scene.registry.get("gameData");
-      const playersWithCharacters = gameData && gameData.playersWithCharacters;
-      
-      // Try to find the correct character for this socket
-      let characterToUse = selectedChar;
-      if (playersWithCharacters && this.socket && this.socket.id) {
-        const playerData = playersWithCharacters[this.socket.id];
-        if (playerData && playerData.char) {
-          characterToUse = playerData.char;
-          console.log(`🎮 Using character from lobby data: ${characterToUse}`);
-        }
-      }
-      
-      console.log("🎮 Emitting newPlayer with character:", characterToUse);
-      this.socket.emit("newPlayer", {
-        char: characterToUse,
-        character: characterToUse, // Send both for compatibility
-        screenWidth: this.scene.scale.width - 190,  // Send the actual drawable area
-        screenHeight: this.scene.scale.height - 190, // Send the actual drawable area
-      });
-
-      this.setupGameEventListeners();
-      console.log("🎮 Game connection setup complete");
-    } catch (error) {
-      console.error("❌ Failed to connect for game:", error);
-      throw error;
     }
+    
+    this.socket.emit("newPlayer", {
+      char: characterToUse,
+      character: characterToUse, // Send both for compatibility
+      screenWidth: this.scene.scale.width - 190,  // Send the actual drawable area
+      screenHeight: this.scene.scale.height - 190, // Send the actual drawable area
+    });
+
+    this.setupGameEventListeners();
   }
 
   // Lobby methods
@@ -218,55 +197,23 @@ class SocketManager {
     this.socket.emit('forceLobbyListRefresh', callback);
   }
 
-  debugLobbyManager(callback) {
-    if (!this.socket) return;
-    this.socket.emit('debugLobbyManager', callback);
-  }
-
-  getLobbyForUrlJoin(lobbyId, callback) {
-    if (!this.socket) return;
-    this.socket.emit('getLobbyForUrlJoin', lobbyId, callback);
-  }
-
-  generateLobbyUrl(lobbyId, callback) {
-    if (!this.socket) return;
-    this.socket.emit('generateLobbyUrl', lobbyId, callback);
-  }
-
   setupGameEventListeners() {
-    if (!this.scene) {
-      console.warn("⚠️ No scene available for game event listeners");
-      return;
-    }
-    
-    console.log("🎮 Setting up game event listeners...");
+    if (!this.scene) return;
     
     this.socket.on("currentPlayers", (data) => {
-      console.log("🎮 Received current players:", data);
       const { players, scores } = data;
-      
       Object.keys(players).forEach((id) => {
         const p = players[id];
         if (id === this.socket.id) {
-          // Update local player
-          if (this.scene.player) {
-            this.scene.player.updatePosition(p.x, p.y);
-            this.scene.player.health = p.health || 100;
-            this.scene.player.score = p.score || 0;
-          }
-          if (this.scene.gameUI) {
-            this.scene.gameUI.updateScore(p.score || 0);
-            this.scene.gameUI.updateHealthBar(p.health || 100);
-          }
+          this.scene.player.updatePosition(p.x, p.y);
+          this.scene.gameUI.updateScore(p.score || 0);
         } else {
-          // Add other players
           this.scene.addOtherPlayer(p, id);
         }
       });
       
       // Start the timer when players are loaded
       if (this.scene && this.scene.startGameTimer) {
-        console.log("🎮 Starting game timer...");
         this.scene.startGameTimer();
       }
     });

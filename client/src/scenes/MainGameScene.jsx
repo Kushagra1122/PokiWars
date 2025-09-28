@@ -6,9 +6,6 @@ import Player from "../entities/Player";
 import GameUI from "../ui/GameUI";
 import GameOverlay from "../ui/GameOverlay";
 import HealthBar from "../ui/HealthBar";
-import React from "react";
-import { createRoot } from "react-dom/client";
-import InGameLeaderboard from "../components/InGameLeaderboard";
 
 import tilesImg from "../assets/maps/snow-tileset (1).png";
 import mapJSON from "../assets/maps/snowMap.json";
@@ -27,41 +24,32 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameTimeRemaining = 0;
     this.timerText = null;
     this.isTimerActive = false;
-    this.lastTimerUpdate = 0;
+    this.lastTimerUpdate = 0; // Track last timer update to avoid multiple updates per second
   }
 
   preload() {
     this.load.image("tiles", tilesImg);
     this.load.tilemapTiledJSON("map", mapJSON);
     
-    // Load character images using proper import paths
+    // Load character images - fix the loading method
     const chars = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
     chars.forEach((char) => {
-      this.load.spritesheet(char, `src/assets/characters/${char}.png`, {
-        frameWidth: 64,
-        frameHeight: 64
-      });
+      // Load as image first, then convert to spritesheet if needed
+      this.load.image(char, `src/assets/characters/${char}.png`);
     });
   }
 
   create() {
-    console.log("🎮 MainGameScene: Starting game creation...");
-    
-    // Initialize game state
-    this.gameState = { isGameOver: false, winner: null };
-    
     // Get the main Pokemon from registry (selected in dashboard) as fallback
     const mainPokemon = this.registry.get("mainPokemon");
     const selectedChar = this.registry.get("selectedCharacter") || 
                         (mainPokemon ? mainPokemon.name : "ALAKAZAM");
-    
-    console.log("🎮 Selected character:", selectedChar);
+    this.gameState = { isGameOver: false, winner: null };
     
     // Get game settings from registry or default values
     const gameSettings = this.registry.get("gameSettings") || { timeLimit: 10 };
     this.gameTimeLimit = gameSettings.timeLimit * 60; // Convert minutes to seconds
     this.gameTimeRemaining = this.gameTimeLimit;
-    console.log("🎮 Game time limit:", this.gameTimeLimit, "seconds");
 
     // --- TILEMAP SETUP ---
     this.map = this.make.tilemap({ key: "map" });
@@ -98,20 +86,19 @@ export default class MainGameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, mapWidth * this.scaleX, mapHeight * this.scaleY);
     this.cameras.main.centerOn(screenWidth / 2, screenHeight / 2);
 
-    // --- SETUP GAME ELEMENTS FIRST ---
-    this.setupGameElements();
-
     // --- PLAYER: FIND VALID SPAWN POSITION ---
     const validSpawn = this.findValidSpawnPosition();
-    console.log("🎮 Valid spawn position found:", validSpawn);
-    
     this.player = new Player(this, validSpawn.x, validSpawn.y, selectedChar);
-    this.player.char = selectedChar; // Store character name for animations
     this.player.sprite.setDisplaySize(this.tileWidth * this.scaleX, this.tileHeight * this.scaleY);
     this.physics.add.collider(this.player.sprite, this.treesLayer);
     this.physics.add.collider(this.player.sprite, this.stonesLayer);
 
-    this.createAnimations(selectedChar);
+    // Try to create animations, but don't break if it fails
+    try {
+      this.createAnimations(selectedChar);
+    } catch (error) {
+      console.warn("Failed to create animations, continuing with static sprites:", error);
+    }
 
     // Depth ordering
     this.groundLayer.setDepth(0);
@@ -126,83 +113,70 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameOverlay = new GameOverlay(this);
     this.createPlayerHealthBar();
     this.createGameTimer();
+    this.setupGameElements();
 
     // --- MANAGERS ---
     this.socketManager = new SocketManager(this);
     this.inputHandler = new InputHandler(this);
     this.effects = new Effects(this);
 
-    // Initialize leaderboard
-    this.initializeLeaderboard();
-
     // Connect to server
-    console.log("🎮 Connecting to server with character:", selectedChar);
     this.socketManager.connectForGame(selectedChar);
   }
 
-  initializeLeaderboard() {
-    // Create a container for the React leaderboard component
-    const leaderboardContainer = document.createElement('div');
-    leaderboardContainer.id = 'leaderboard-container';
-    leaderboardContainer.style.position = 'fixed';
-    leaderboardContainer.style.top = '0';
-    leaderboardContainer.style.left = '0';
-    leaderboardContainer.style.width = '100%';
-    leaderboardContainer.style.height = '100%';
-    leaderboardContainer.style.pointerEvents = 'none';
-    leaderboardContainer.style.zIndex = '1000';
-    
-    document.body.appendChild(leaderboardContainer);
-    
-    // Create React root and render the leaderboard
-    this.leaderboardRoot = createRoot(leaderboardContainer);
-    this.leaderboardRoot.render(React.createElement(InGameLeaderboard, { 
-      isVisible: true 
-    }));
-  }
-
   createAnimations(selectedChar) {
-    console.log("🎮 Creating animations for character:", selectedChar);
-    
+    // Only create animations if the texture is loaded as a spritesheet
+    const texture = this.textures.get(selectedChar);
+    if (!texture || !texture.frames || Object.keys(texture.frames).length <= 1) {
+      console.log(`Texture ${selectedChar} not loaded as spritesheet, skipping animations`);
+      return;
+    }
+
     const characters = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
     const directions = ["down", "left", "right", "up"]; // Row order
     const frameRate = 8;
 
     characters.forEach(char => {
-      directions.forEach((dir, rowIndex) => {
-        // Walking animation (4 frames per row)
-        this.anims.create({
-          key: `${char}_${dir}`,
-          frames: this.anims.generateFrameNumbers(char, {
-            start: rowIndex * 4,
-            end: rowIndex * 4 + 3
-          }),
-          frameRate: frameRate,
-          repeat: -1
-        });
+      // Check if this character's texture exists
+      if (!this.textures.exists(char)) return;
 
-        // Idle animation (first frame of each row)
-        this.anims.create({
-          key: `${char}_${dir}_idle`,
-          frames: [{ key: char, frame: rowIndex * 4 }],
-          frameRate: 1,
-          repeat: -1
-        });
+      directions.forEach((dir, rowIndex) => {
+        try {
+          // Walking animation (4 frames per row)
+          this.anims.create({
+            key: `${char}_${dir}`,
+            frames: this.anims.generateFrameNumbers(char, {
+              start: rowIndex * 4,
+              end: rowIndex * 4 + 3
+            }),
+            frameRate: frameRate,
+            repeat: -1
+          });
+
+          // Idle animation (first frame of each row)
+          this.anims.create({
+            key: `${char}_${dir}_idle`,
+            frames: [{ key: char, frame: rowIndex * 4 }],
+            frameRate: 1,
+            repeat: -1
+          });
+        } catch (error) {
+          console.warn(`Failed to create animation for ${char}_${dir}:`, error);
+        }
       });
     });
 
     // Play selected character's default idle animation
-    if (this.player?.sprite) {
-      const idleAnim = `${selectedChar}_down_idle`;
-      console.log("🎮 Playing idle animation:", idleAnim);
-      this.player.sprite.anims.play(idleAnim);
+    if (this.player?.sprite && this.anims.exists(`${selectedChar}_down_idle`)) {
+      try {
+        this.player.sprite.anims.play(`${selectedChar}_down_idle`);
+      } catch (error) {
+        console.warn("Failed to play idle animation:", error);
+      }
     }
   }
 
-
   setupGameElements() {
-    console.log("🎮 Setting up game elements...");
-    
     this.shootRange = 150;
     this.bullets = this.add.group();
 
@@ -212,73 +186,84 @@ export default class MainGameScene extends Phaser.Scene {
     this.otherPlayers = {};
     this.otherPlayerTargets = {};
     this.lastUpdateTime = 0;
-    
-    console.log("🎮 Game elements setup complete");
   }
 
   update(time, delta) {
-    if (!this.player || this.gameState.isGameOver) {
-      return;
-    }
-
-    // Ensure input handler exists
-    if (!this.inputHandler) {
-      console.warn("⚠️ Input handler not initialized");
-      return;
-    }
+    if (!this.player || this.gameState.isGameOver) return;
 
     const { moveX, moveY } = this.inputHandler.getMovementDirection();
     const speed = this.moveSpeed;
 
-    // Reset velocity
     this.player.sprite.body.setVelocity(0);
 
     if (moveX !== 0 || moveY !== 0) {
-      // Apply movement
       this.player.sprite.body.setVelocity(moveX * speed, moveY * speed);
       this.player.sprite.body.velocity.normalize().scale(speed);
 
       // Emit movement to server every 50ms
       if (this.time.now - this.lastUpdateTime > 50) {
-        if (this.socketManager) {
-          this.socketManager.emitMovement(this.player.sprite.x, this.player.sprite.y);
-        }
+        this.socketManager.emitMovement(this.player.sprite.x, this.player.sprite.y);
         this.lastUpdateTime = this.time.now;
       }
 
-      // Determine animation based on direction
-      let direction = "down"; // default
-      if (Math.abs(moveX) > Math.abs(moveY)) {
-        direction = moveX < 0 ? "left" : "right";
-      } else if (Math.abs(moveY) > 0) {
-        direction = moveY < 0 ? "up" : "down";
+      // Handle animations only if they exist
+      try {
+        this.handleMovementAnimation(moveX, moveY);
+      } catch (error) {
+        // Silently continue if animations fail
       }
-
-      // Play walking animation if not already playing
-      const walkAnim = `${this.player.char}_${direction}`;
-      if (this.player.sprite.anims.getCurrentKey() !== walkAnim) {
-        this.player.sprite.anims.play(walkAnim, true);
-      }
-
     } else {
-      // Idle animation based on last direction
-      const currentAnim = this.player.sprite.anims.getCurrentKey();
-      if (currentAnim && !currentAnim.includes("_idle")) {
-        const idleAnim = `${this.player.char}_${currentAnim.split("_")[1]}_idle`;
-        this.player.sprite.anims.play(idleAnim, true);
+      // Handle idle animations
+      try {
+        this.handleIdleAnimation();
+      } catch (error) {
+        // Silently continue if animations fail
       }
 
       // Stop movement
       this.player.sprite.body.setVelocity(0);
     }
 
-    // Update all game systems
     this.inputHandler.update(delta);
     this.updateBullets(delta);
     this.interpolateOtherPlayers();
     this.updatePlayerHealthBar();
     this.updateOtherPlayersUI();
-    this.updateGameTimer();
+    this.updateGameTimer(time);
+  }
+
+  handleMovementAnimation(moveX, moveY) {
+    if (!this.player?.sprite?.anims) return;
+
+    // Determine animation based on direction
+    let direction = "down"; // default
+    if (Math.abs(moveX) > Math.abs(moveY)) {
+      direction = moveX < 0 ? "left" : "right";
+    } else if (Math.abs(moveY) > 0) {
+      direction = moveY < 0 ? "up" : "down";
+    }
+
+    // Play walking animation if not already playing
+    const walkAnim = `${this.player.char}_${direction}`;
+    if (this.anims.exists(walkAnim) && this.player.sprite.anims.getCurrentKey() !== walkAnim) {
+      this.player.sprite.anims.play(walkAnim, true);
+    }
+  }
+
+  handleIdleAnimation() {
+    if (!this.player?.sprite?.anims) return;
+
+    // Idle animation based on last direction
+    const currentAnim = this.player.sprite.anims.getCurrentKey();
+    if (currentAnim && !currentAnim.includes("_idle")) {
+      const parts = currentAnim.split("_");
+      if (parts.length >= 2) {
+        const idleAnim = `${parts[0]}_${parts[1]}_idle`;
+        if (this.anims.exists(idleAnim)) {
+          this.player.sprite.anims.play(idleAnim, true);
+        }
+      }
+    }
   }
 
   updateBullets(delta) {
@@ -322,8 +307,6 @@ export default class MainGameScene extends Phaser.Scene {
     });
   }
 
-
-
   updatePlayerHealthBar() {
     if (this.player?.healthBar) {
       this.player.healthBar.update(this.player.health);
@@ -343,8 +326,6 @@ export default class MainGameScene extends Phaser.Scene {
     const currentTime = this.time.now;
     if (currentTime - this.lastShotTime < this.shootCooldown) return;
     this.lastShotTime = currentTime;
-
-    console.log("🎮 Player shooting...");
 
     const pointer = this.input.activePointer;
     const angle = Math.atan2(pointer.worldY - this.player.sprite.y, pointer.worldX - this.player.sprite.x);
@@ -383,10 +364,7 @@ export default class MainGameScene extends Phaser.Scene {
         return dist(current) < dist(closest) ? current : closest;
       }, hitTargets[0]);
 
-      console.log("🎮 Hit target:", closestTarget);
-      if (this.socketManager) {
-        this.socketManager.emitHit(closestTarget);
-      }
+      this.socketManager.emitHit(closestTarget);
     }
   }
 
@@ -482,18 +460,13 @@ export default class MainGameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(1001);
   }
 
-  updateGameTimer() {
+  updateGameTimer(time) {
     if (!this.isTimerActive || this.gameState.isGameOver) return;
     
-    // Update timer every second using a more reliable method
-    const currentTime = this.time.now;
-    if (!this.lastTimerUpdate) {
-      this.lastTimerUpdate = currentTime;
-    }
-    
-    if (currentTime - this.lastTimerUpdate >= 1000) {
+    // Update timer every second (use time instead of rough calculation)
+    if (time - this.lastTimerUpdate >= 1000) {
+      this.lastTimerUpdate = time;
       this.gameTimeRemaining--;
-      this.lastTimerUpdate = currentTime;
       
       if (this.timerText) {
         this.timerText.setText(this.formatTime(this.gameTimeRemaining));
@@ -523,6 +496,7 @@ export default class MainGameScene extends Phaser.Scene {
 
   startGameTimer() {
     this.isTimerActive = true;
+    this.lastTimerUpdate = this.time.now; // Initialize timer tracking
   }
 
   stopGameTimer() {
@@ -534,8 +508,8 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameState.isGameOver = true;
     
     // Determine winner based on highest health or score
-    let winnerId = null;
-    let winnerChar = null;
+    let winnerId = this.socketManager.socket.id;
+    let winnerChar = this.player.char;
     let highestScore = this.player.health || 0;
     
     // Check other players
@@ -544,15 +518,9 @@ export default class MainGameScene extends Phaser.Scene {
       if (player.health > highestScore) {
         highestScore = player.health;
         winnerId = id;
-        winnerChar = player.sprite.texture.key;
+        winnerChar = player.char;
       }
     });
-    
-    // If local player has highest score, they win
-    if (highestScore === this.player.health) {
-      winnerId = this.socketManager.socket.id;
-      winnerChar = this.player.sprite.texture.key;
-    }
     
     this.showGameOver(winnerId, winnerChar);
   }
@@ -609,21 +577,16 @@ export default class MainGameScene extends Phaser.Scene {
     const screenHeight = this.scale.height - 190;
     const padding = 50; // Keep away from edges
 
-    console.log("🎮 Finding valid spawn position...");
-    console.log("🎮 Screen dimensions:", screenWidth, "x", screenHeight);
-
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const x = Math.random() * (screenWidth - padding * 2) + padding;
       const y = Math.random() * (screenHeight - padding * 2) + padding;
 
       if (this.isValidSpawnPosition(x, y)) {
-        console.log("🎮 Valid spawn found at attempt", attempt + 1, ":", x, y);
         return { x, y };
       }
     }
 
     // Fallback to center if no valid position found
-    console.log("🎮 No valid spawn found, using center position");
     return { x: screenWidth / 2, y: screenHeight / 2 };
   }
 
@@ -653,17 +616,6 @@ export default class MainGameScene extends Phaser.Scene {
     // Clean up bullets
     if (this.bullets) {
       this.bullets.clear(true, true);
-    }
-    
-    // Clean up leaderboard
-    if (this.leaderboardRoot) {
-      this.leaderboardRoot.unmount();
-    }
-    
-    // Remove leaderboard container
-    const leaderboardContainer = document.getElementById('leaderboard-container');
-    if (leaderboardContainer) {
-      leaderboardContainer.remove();
     }
     
     // Clean up network manager
