@@ -204,7 +204,7 @@ function Dashboard() {
             <img
               // src={main.main}
               src={pokimonDashImage[main.main]}
-              alt="Character"
+              alt="select your main"
               className="max-w-md max-h-96 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
             />
             <div className="absolute inset-0 "></div>
