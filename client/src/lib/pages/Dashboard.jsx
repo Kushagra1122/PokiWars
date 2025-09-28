@@ -1,4 +1,5 @@
 import TokenBalance from '@/components/BalanceTokens';
+import DailyRewards from '@/components/DailyRewards';
 import { Bell, User, Users, LogOut } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/8bit/button';
 import PokemonCard from '@/components/PokimonCard';
 import { usePokemon } from '@/contexts/PokemonContext';
 import { useUser } from '@/contexts/UserContext';
+import { tokenApi } from '@/lib/api/tokenApi';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ function Dashboard() {
 
   const [hoveredNav, setHoveredNav] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [rewardAvailable, setRewardAvailable] = useState(false);
 
 
   const pokimonDashImage = {
@@ -47,8 +50,22 @@ function Dashboard() {
   useEffect(() => {
     if (walletAddress) {
       fetchNFTsForAddress(walletAddress);
+      checkDailyRewardStatus();
     }
   }, [walletAddress, fetchNFTsForAddress]);
+
+  // Check daily reward status
+  const checkDailyRewardStatus = async () => {
+    if (!walletAddress) return;
+    
+    try {
+      const status = await tokenApi.getRewardStatus(walletAddress);
+      setRewardAvailable(status?.eligibility?.eligible || false);
+    } catch (error) {
+      console.error('Failed to check reward status:', error);
+      setRewardAvailable(false);
+    }
+  };
 
   const handleMarketplaceClick = () => {
     navigate('/market');
@@ -118,6 +135,11 @@ function Dashboard() {
         POKIWARS
       </div>
 
+      {/* Daily Rewards Panel */}
+      <div className="absolute top-24 left-6 w-80 z-10">
+        <DailyRewards onRewardStatusChange={setRewardAvailable} />
+      </div>
+
       {/* Enhanced Navbar with better glassmorphism */}
       <div className="flex justify-center items-center absolute right-0 m-6 gap-8 border border-white/20 max-w-2xl h-20 px-8 bg-black/20 backdrop-blur-md rounded-xl shadow-2xl">
         {/* Profile Icon */}
@@ -160,8 +182,10 @@ function Dashboard() {
         >
           <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-200 relative">
             <Bell className='size-8 text-white drop-shadow-lg' />
-            {/* Notification badge */}
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            {/* Notification badge - shows when daily reward is available */}
+            {rewardAvailable && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+            )}
           </div>
         </div>
 

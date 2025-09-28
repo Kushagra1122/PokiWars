@@ -1,0 +1,24 @@
+{
+  "userClaims": {
+    "0x1234567890123456789012345678901234567890": {
+      "address": "0x1234567890123456789012345678901234567890",
+      "lastClaimTime": 1759026342235,
+      "totalClaims": 1,
+      "transactionHash": "0xmockhash123",
+      "lastClaimDate": "2025-09-28T02:25:42.235Z"
+    },
+    "0x5c084030bf97c84ed3873b731e77e6dbdedcb1e9": {
+      "address": "0x5c084030bf97c84ed3873b731e77e6dbdedcb1e9",
+      "lastClaimTime": 1759027360625,
+      "totalClaims": 1,
+      "transactionHash": "0x631587ac1cab9404a7ed748681f34b348214f63b82d0c2bce1761ea455977143",
+      "lastClaimDate": "2025-09-28T02:42:40.625Z"
+    }
+  },
+  "metadata": {
+    "created": 1759026141594,
+    "lastUpdate": 1759027360625,
+    "totalClaims": 2,
+    "totalTokensDistributed": "20"
+  }
+}

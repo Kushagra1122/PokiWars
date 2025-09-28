@@ -5,6 +5,8 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const TokenService = require("./services/tokenService");
+const RewardsService = require("./services/rewardsService");
+const RewardsHandler = require("./handlers/rewardsHandler");
 
 const app = express();
 const server = http.createServer(app);
@@ -17,17 +19,41 @@ console.log('PRIVATE_KEY first 10 chars:', process.env.PRIVATE_KEY ? process.env
 
 // Initialize token service
 let tokenService;
+let rewardsService;
+let rewardsHandler;
+
 try {
     tokenService = new TokenService();
     console.log('✅ Token service created successfully');
+    
+    // Initialize rewards service
+    rewardsService = new RewardsService(tokenService);
+    console.log('✅ Rewards service created successfully');
+    
+    // Initialize rewards handler
+    rewardsHandler = new RewardsHandler(rewardsService);
+    console.log('✅ Rewards handler created successfully');
+    
 } catch (error) {
-    console.error('❌ Failed to create token service:', error.message);
+    console.error('❌ Failed to create services:', error.message);
     console.log('Please check your PRIVATE_KEY environment variable');
-    // Create a dummy service that will return errors
+    // Create dummy services that will return errors
     tokenService = {
         transferTokens: async () => ({
             success: false,
             error: 'Token service not initialized. Check PRIVATE_KEY environment variable.'
+        })
+    };
+    rewardsService = {
+        claimDailyReward: async () => ({
+            success: false,
+            error: 'Rewards service not initialized. Check PRIVATE_KEY environment variable.'
+        })
+    };
+    rewardsHandler = {
+        handleX402Flow: async (req, res) => res.status(500).json({
+            success: false,
+            error: 'Rewards handler not initialized.'
         })
     };
 }
@@ -105,6 +131,56 @@ app.post('/transfer-tokens', async (req, res) => {
     }
     
     console.log('=== END TOKEN TRANSFER REQUEST ===\n');
+});
+
+// Daily Rewards API Endpoints with x402 Integration
+
+// Claim daily reward endpoint with x402 flow
+app.post('/claim-daily-reward', 
+    async (req, res, next) => await rewardsHandler.handleX402Flow(req, res, next),
+    async (req, res) => await rewardsHandler.processDailyRewardClaim(req, res)
+);
+
+// Get user reward status
+app.get('/reward-status/:address', async (req, res) => {
+    await rewardsHandler.getUserRewardStatus(req, res);
+});
+
+// Alternative endpoint for POST requests
+app.post('/reward-status', async (req, res) => {
+    req.query.address = req.body.address;
+    await rewardsHandler.getUserRewardStatus(req, res);
+});
+
+// Get system rewards statistics
+app.get('/rewards-stats', async (req, res) => {
+    await rewardsHandler.getRewardsStats(req, res);
+});
+
+// x402 compatible reward info endpoint
+app.get('/reward-info', (req, res) => {
+    res.json({
+        success: true,
+        x402: {
+            protocol: 'daily_rewards',
+            version: '1.0.0',
+            paymentType: 'reverse_payment',
+            description: 'Daily PKT token rewards for PokiWars players'
+        },
+        reward: {
+            amount: '10',
+            token: 'PKT',
+            network: 'polygon',
+            cooldown: '24 hours',
+            contract: '0x80e044c711a6904950ff6cbb8f3bdb18877be483'
+        },
+        endpoints: {
+            claim: '/claim-daily-reward',
+            status: '/reward-status/{address}',
+            stats: '/rewards-stats',
+            info: '/reward-info'
+        }
+    });
 });
 
 // Health check endpoint
