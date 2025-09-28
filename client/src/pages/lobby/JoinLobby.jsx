@@ -21,6 +21,7 @@ export default function JoinLobby() {
   const [connectionStatus, setConnectionStatus] = useState('');
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [creatorMappings, setCreatorMappings] = useState({});
+  const [debugInfo, setDebugInfo] = useState({});
 
   // Use the main Pokemon as the selected character
   useEffect(() => {
@@ -215,6 +216,24 @@ export default function JoinLobby() {
     } catch (error) {
       console.error('❌ Error force refreshing:', error);
       setConnectionStatus('Force refresh error');
+    }
+  };
+
+  const debugLobbyManager = async () => {
+    try {
+      setConnectionStatus('Debugging lobby manager...');
+      socketManager.debugLobbyManager((response) => {
+        if (response && response.success) {
+          console.log('🔍 Debug info:', response);
+          setDebugInfo(response);
+          setConnectionStatus(`Debug complete - ${response.allLobbies?.length || 0} total lobbies, ${response.stats?.activeCreators || 0} creators`);
+        } else {
+          setConnectionStatus('Debug failed');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error debugging:', error);
+      setConnectionStatus('Debug error');
     }
   };
 
@@ -429,7 +448,7 @@ export default function JoinLobby() {
             <div className="bg-gray-700 rounded-lg p-4 mb-6">
               <h3 className="text-lg font-semibold mb-4">Debug Panel</h3>
               <div className="space-y-4">
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 flex-wrap">
                   <button
                     onClick={loadCreatorMappings}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
@@ -442,6 +461,12 @@ export default function JoinLobby() {
                   >
                     Force Refresh Lobby List
                   </button>
+                  <button
+                    onClick={debugLobbyManager}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
+                  >
+                    Debug Lobby Manager
+                  </button>
                 </div>
                 
                 {Object.keys(creatorMappings).length > 0 && (
@@ -450,6 +475,17 @@ export default function JoinLobby() {
                     <div className="bg-gray-600 rounded p-3 max-h-40 overflow-y-auto">
                       <pre className="text-xs text-gray-300">
                         {JSON.stringify(creatorMappings, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+                
+                {Object.keys(debugInfo).length > 0 && (
+                  <div>
+                    <h4 className="text-md font-semibold mb-2">Debug Info:</h4>
+                    <div className="bg-gray-600 rounded p-3 max-h-40 overflow-y-auto">
+                      <pre className="text-xs text-gray-300">
+                        {JSON.stringify(debugInfo, null, 2)}
                       </pre>
                     </div>
                   </div>

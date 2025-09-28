@@ -211,6 +211,21 @@ class SocketManager {
     this.socket.emit('forceLobbyListRefresh', callback);
   }
 
+  debugLobbyManager(callback) {
+    if (!this.socket) return;
+    this.socket.emit('debugLobbyManager', callback);
+  }
+
+  getLobbyForUrlJoin(lobbyId, callback) {
+    if (!this.socket) return;
+    this.socket.emit('getLobbyForUrlJoin', lobbyId, callback);
+  }
+
+  generateLobbyUrl(lobbyId, callback) {
+    if (!this.socket) return;
+    this.socket.emit('generateLobbyUrl', lobbyId, callback);
+  }
+
   setupGameEventListeners() {
     if (!this.scene) return;
     this.socket.on("currentPlayers", (data) => {

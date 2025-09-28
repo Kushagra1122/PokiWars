@@ -19,6 +19,8 @@ export default function LobbyRoom() {
   const [gameStartTimer, setGameStartTimer] = useState(null);
   const [timeUntilStart, setTimeUntilStart] = useState(0);
   const [stakedPlayers, setStakedPlayers] = useState(new Set());
+  const [shareableUrl, setShareableUrl] = useState('');
+  const [showUrlModal, setShowUrlModal] = useState(false);
 
   const availableMaps = [
     { id: 'forest', name: 'Forest Map' },
@@ -45,6 +47,25 @@ export default function LobbyRoom() {
     };
   }, [lobbyId]);
 
+  const generateShareableUrl = () => {
+    if (lobbyId) {
+      const baseUrl = window.location.origin;
+      const shareableUrl = `${baseUrl}/lobby/join/${lobbyId}`;
+      setShareableUrl(shareableUrl);
+      console.log('🔗 Generated shareable URL:', shareableUrl);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareableUrl);
+      // You could add a toast notification here
+      console.log('📋 URL copied to clipboard');
+    } catch (err) {
+      console.error('❌ Failed to copy URL:', err);
+    }
+  };
+
   const loadLobbyState = async () => {
     try {
       
@@ -64,6 +85,11 @@ export default function LobbyRoom() {
           setLobby(response.lobby);
           setIsHost(response.lobby.hostId === socketManager.socket.id);
           setIsLoading(false);
+          
+          // Generate shareable URL for the host
+          if (response.lobby.hostId === socketManager.socket.id) {
+            generateShareableUrl();
+          }
         } else {
           // We need to join this lobby
           const playerInfo = {
@@ -347,11 +373,21 @@ export default function LobbyRoom() {
           >
             ← Leave Lobby
           </button>
-          <div className="text-right">
-            <p className="text-sm text-gray-400">Lobby ID: {lobby.id}</p>
-            <p className="text-sm text-gray-400">
-              Status: <span className="text-green-400">{lobby.status}</span>
-            </p>
+          <div className="flex items-center space-x-4">
+            {isHost && shareableUrl && (
+              <button
+                onClick={() => setShowUrlModal(true)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+              >
+                🔗 Share Lobby
+              </button>
+            )}
+            <div className="text-right">
+              <p className="text-sm text-gray-400">Lobby ID: {lobby.id}</p>
+              <p className="text-sm text-gray-400">
+                Status: <span className="text-green-400">{lobby.status}</span>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -665,6 +701,37 @@ export default function LobbyRoom() {
           </div>
         </div>
       </div>
+
+      {/* URL Sharing Modal */}
+      {showUrlModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold mb-4">Share Lobby</h3>
+            <p className="text-gray-400 mb-4">
+              Share this URL with friends to invite them to your lobby:
+            </p>
+            
+            <div className="bg-gray-700 rounded-lg p-3 mb-4">
+              <code className="text-sm text-green-400 break-all">{shareableUrl}</code>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={copyToClipboard}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                📋 Copy URL
+              </button>
+              <button
+                onClick={() => setShowUrlModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

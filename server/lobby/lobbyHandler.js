@@ -48,6 +48,14 @@ function handleLobbyConnection(io, socket) {
             // Broadcast lobby list update to all clients in lobby list
             const updatedLobbies = lobbyManager.getPublicLobbies();
             console.log(`📢 Broadcasting lobby list update to lobby-list room: ${updatedLobbies.length} lobbies`);
+            console.log(`📢 Broadcasting to ${io.sockets.adapter.rooms.get('lobby-list')?.size || 0} clients in lobby-list room`);
+            console.log('📋 Updated lobbies being broadcast:', updatedLobbies.map(l => ({ 
+                id: l.id, 
+                host: l.hostName, 
+                status: l.status, 
+                players: `${l.playerCount}/${l.maxPlayers}`,
+                isPrivate: l.isPrivate
+            })));
             io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
         } catch (error) {
@@ -325,7 +333,8 @@ function handleLobbyConnection(io, socket) {
             socket.join('lobby-list');
 
             console.log(`📋 Lobby list requested by ${socket.id}, returning ${lobbies.length} lobbies`);
-            console.log('Available lobbies:', lobbies.map(l => ({ 
+            console.log(`📋 Client ${socket.id} joined lobby-list room (${io.sockets.adapter.rooms.get('lobby-list')?.size || 0} total clients)`);
+            console.log('📋 Available lobbies:', lobbies.map(l => ({ 
                 id: l.id, 
                 host: l.hostName, 
                 status: l.status, 
@@ -333,6 +342,10 @@ function handleLobbyConnection(io, socket) {
                 isPrivate: l.isPrivate,
                 map: l.map
             })));
+
+            // Also log the creator mappings for debugging
+            const mappings = lobbyManager.getAllCreatorMappings();
+            console.log('📊 Current creator mappings:', Object.keys(mappings).length > 0 ? mappings : 'No mappings found');
 
             if (callback) {
                 callback({ 
@@ -534,6 +547,117 @@ function handleLobbyConnection(io, socket) {
             }
         } catch (error) {
             console.error('❌ Error force refreshing lobby list:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
+
+    // Debug endpoint to check lobby manager state
+    socket.on('debugLobbyManager', (callback) => {
+        try {
+            const stats = lobbyManager.getStats();
+            const mappings = lobbyManager.getAllCreatorMappings();
+            const allLobbies = Array.from(lobbyManager.lobbies.values()).map(l => ({
+                id: l.id,
+                hostName: l.hostInfo.name || l.hostInfo.char,
+                status: l.status,
+                playerCount: l.players.size,
+                maxPlayers: l.settings.maxPlayers,
+                isPrivate: l.settings.isPrivate,
+                createdAt: l.createdAt
+            }));
+            
+            console.log('🔍 Debug lobby manager state:');
+            console.log('📊 Stats:', stats);
+            console.log('🗺️ Mappings:', mappings);
+            console.log('🏠 All lobbies:', allLobbies);
+            
+            if (callback) {
+                callback({ 
+                    success: true, 
+                    stats: stats,
+                    mappings: mappings,
+                    allLobbies: allLobbies
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error debugging lobby manager:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
+
+    // Get lobby info for URL-based joining
+    socket.on('getLobbyForUrlJoin', (lobbyId, callback) => {
+        try {
+            const lobbyInfo = lobbyManager.getLobbyForUrlJoin(lobbyId);
+            
+            if (lobbyInfo) {
+                console.log(`🔗 Lobby info requested for URL join: ${lobbyId}`);
+                if (callback) {
+                    callback({ 
+                        success: true, 
+                        lobbyInfo: lobbyInfo 
+                    });
+                }
+            } else {
+                console.log(`❌ Lobby not found for URL join: ${lobbyId}`);
+                if (callback) {
+                    callback({ 
+                        success: false, 
+                        error: 'Lobby not found' 
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error getting lobby for URL join:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
+
+    // Generate shareable lobby URL
+    socket.on('generateLobbyUrl', (lobbyId, callback) => {
+        try {
+            const lobby = lobbyManager.getLobby(lobbyId);
+            if (!lobby) {
+                if (callback) {
+                    callback({ 
+                        success: false, 
+                        error: 'Lobby not found' 
+                    });
+                }
+                return;
+            }
+
+            // Get the client's IP or use a default
+            const clientIP = socket.handshake.address;
+            const baseUrl = `http://${clientIP.split(':')[0]}:3000`; // Assuming client runs on port 3000
+            const shareableUrl = lobbyManager.generateLobbyUrl(lobbyId, baseUrl);
+            
+            console.log(`🔗 Generated shareable URL for lobby ${lobbyId}: ${shareableUrl}`);
+            
+            if (callback) {
+                callback({ 
+                    success: true, 
+                    url: shareableUrl,
+                    lobbyId: lobbyId
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error generating lobby URL:', error.message);
             if (callback) {
                 callback({ 
                     success: false, 

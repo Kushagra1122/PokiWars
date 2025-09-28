@@ -367,6 +367,27 @@ class LobbyManager {
         return this.lobbyCreatorMap.get(lobbyId);
     }
 
+    // Generate shareable lobby URL
+    generateLobbyUrl(lobbyId, baseUrl = 'http://localhost:3000') {
+        return `${baseUrl}/lobby/join/${lobbyId}`;
+    }
+
+    // Get lobby by ID for URL-based joining
+    getLobbyForUrlJoin(lobbyId) {
+        const lobby = this.lobbies.get(lobbyId);
+        if (!lobby) {
+            return null;
+        }
+        
+        // Return lobby info suitable for URL joining
+        return {
+            exists: true,
+            lobby: lobby.getLobbyState(),
+            publicInfo: lobby.getPublicInfo(),
+            creator: this.lobbyCreatorMap.get(lobbyId)
+        };
+    }
+
     // Get all creator mappings (for debugging)
     getAllCreatorMappings() {
         const mappings = {};
