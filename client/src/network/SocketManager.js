@@ -119,30 +119,42 @@ class SocketManager {
 
   // Game-specific connection
   async connectForGame(selectedChar) {
-    await this.connect();
-    
-    // Get additional game data from registry if available (from lobby)
-    const gameData = this.scene && this.scene.registry.get("gameData");
-    const playersWithCharacters = gameData && gameData.playersWithCharacters;
-    
-    // Try to find the correct character for this socket
-    let characterToUse = selectedChar;
-    if (playersWithCharacters && this.socket && this.socket.id) {
-      const playerData = playersWithCharacters[this.socket.id];
-      if (playerData && playerData.char) {
-        characterToUse = playerData.char;
-        console.log(`Using character from lobby data: ${characterToUse}`);
+    try {
+      console.log("🎮 Connecting for game with character:", selectedChar);
+      await this.connect();
+      
+      if (!this.socket || !this.socket.connected) {
+        throw new Error("Failed to establish socket connection");
       }
-    }
-    
-    this.socket.emit("newPlayer", {
-      char: characterToUse,
-      character: characterToUse, // Send both for compatibility
-      screenWidth: this.scene.scale.width - 190,  // Send the actual drawable area
-      screenHeight: this.scene.scale.height - 190, // Send the actual drawable area
-    });
+      
+      // Get additional game data from registry if available (from lobby)
+      const gameData = this.scene && this.scene.registry.get("gameData");
+      const playersWithCharacters = gameData && gameData.playersWithCharacters;
+      
+      // Try to find the correct character for this socket
+      let characterToUse = selectedChar;
+      if (playersWithCharacters && this.socket && this.socket.id) {
+        const playerData = playersWithCharacters[this.socket.id];
+        if (playerData && playerData.char) {
+          characterToUse = playerData.char;
+          console.log(`🎮 Using character from lobby data: ${characterToUse}`);
+        }
+      }
+      
+      console.log("🎮 Emitting newPlayer with character:", characterToUse);
+      this.socket.emit("newPlayer", {
+        char: characterToUse,
+        character: characterToUse, // Send both for compatibility
+        screenWidth: this.scene.scale.width - 190,  // Send the actual drawable area
+        screenHeight: this.scene.scale.height - 190, // Send the actual drawable area
+      });
 
-    this.setupGameEventListeners();
+      this.setupGameEventListeners();
+      console.log("🎮 Game connection setup complete");
+    } catch (error) {
+      console.error("❌ Failed to connect for game:", error);
+      throw error;
+    }
   }
 
   // Lobby methods
@@ -222,21 +234,39 @@ class SocketManager {
   }
 
   setupGameEventListeners() {
-    if (!this.scene) return;
+    if (!this.scene) {
+      console.warn("⚠️ No scene available for game event listeners");
+      return;
+    }
+    
+    console.log("🎮 Setting up game event listeners...");
+    
     this.socket.on("currentPlayers", (data) => {
+      console.log("🎮 Received current players:", data);
       const { players, scores } = data;
+      
       Object.keys(players).forEach((id) => {
         const p = players[id];
         if (id === this.socket.id) {
-          this.scene.player.updatePosition(p.x, p.y);
-          this.scene.gameUI.updateScore(p.score || 0);
+          // Update local player
+          if (this.scene.player) {
+            this.scene.player.updatePosition(p.x, p.y);
+            this.scene.player.health = p.health || 100;
+            this.scene.player.score = p.score || 0;
+          }
+          if (this.scene.gameUI) {
+            this.scene.gameUI.updateScore(p.score || 0);
+            this.scene.gameUI.updateHealthBar(p.health || 100);
+          }
         } else {
+          // Add other players
           this.scene.addOtherPlayer(p, id);
         }
       });
       
       // Start the timer when players are loaded
       if (this.scene && this.scene.startGameTimer) {
+        console.log("🎮 Starting game timer...");
         this.scene.startGameTimer();
       }
     });

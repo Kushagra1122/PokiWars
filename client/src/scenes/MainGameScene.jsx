@@ -27,6 +27,7 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameTimeRemaining = 0;
     this.timerText = null;
     this.isTimerActive = false;
+    this.lastTimerUpdate = 0;
   }
 
   preload() {
@@ -44,16 +45,23 @@ export default class MainGameScene extends Phaser.Scene {
   }
 
   create() {
+    console.log("🎮 MainGameScene: Starting game creation...");
+    
+    // Initialize game state
+    this.gameState = { isGameOver: false, winner: null };
+    
     // Get the main Pokemon from registry (selected in dashboard) as fallback
     const mainPokemon = this.registry.get("mainPokemon");
     const selectedChar = this.registry.get("selectedCharacter") || 
                         (mainPokemon ? mainPokemon.name : "ALAKAZAM");
-    this.gameState = { isGameOver: false, winner: null };
+    
+    console.log("🎮 Selected character:", selectedChar);
     
     // Get game settings from registry or default values
     const gameSettings = this.registry.get("gameSettings") || { timeLimit: 10 };
     this.gameTimeLimit = gameSettings.timeLimit * 60; // Convert minutes to seconds
     this.gameTimeRemaining = this.gameTimeLimit;
+    console.log("🎮 Game time limit:", this.gameTimeLimit, "seconds");
 
     // --- TILEMAP SETUP ---
     this.map = this.make.tilemap({ key: "map" });
@@ -90,9 +98,15 @@ export default class MainGameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, mapWidth * this.scaleX, mapHeight * this.scaleY);
     this.cameras.main.centerOn(screenWidth / 2, screenHeight / 2);
 
+    // --- SETUP GAME ELEMENTS FIRST ---
+    this.setupGameElements();
+
     // --- PLAYER: FIND VALID SPAWN POSITION ---
     const validSpawn = this.findValidSpawnPosition();
+    console.log("🎮 Valid spawn position found:", validSpawn);
+    
     this.player = new Player(this, validSpawn.x, validSpawn.y, selectedChar);
+    this.player.char = selectedChar; // Store character name for animations
     this.player.sprite.setDisplaySize(this.tileWidth * this.scaleX, this.tileHeight * this.scaleY);
     this.physics.add.collider(this.player.sprite, this.treesLayer);
     this.physics.add.collider(this.player.sprite, this.stonesLayer);
@@ -112,7 +126,6 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameOverlay = new GameOverlay(this);
     this.createPlayerHealthBar();
     this.createGameTimer();
-    this.setupGameElements();
 
     // --- MANAGERS ---
     this.socketManager = new SocketManager(this);
@@ -123,6 +136,7 @@ export default class MainGameScene extends Phaser.Scene {
     this.initializeLeaderboard();
 
     // Connect to server
+    console.log("🎮 Connecting to server with character:", selectedChar);
     this.socketManager.connectForGame(selectedChar);
   }
 
@@ -148,6 +162,8 @@ export default class MainGameScene extends Phaser.Scene {
   }
 
   createAnimations(selectedChar) {
+    console.log("🎮 Creating animations for character:", selectedChar);
+    
     const characters = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
     const directions = ["down", "left", "right", "up"]; // Row order
     const frameRate = 8;
@@ -177,12 +193,16 @@ export default class MainGameScene extends Phaser.Scene {
 
     // Play selected character's default idle animation
     if (this.player?.sprite) {
-      this.player.sprite.anims.play(`${selectedChar}_down_idle`);
+      const idleAnim = `${selectedChar}_down_idle`;
+      console.log("🎮 Playing idle animation:", idleAnim);
+      this.player.sprite.anims.play(idleAnim);
     }
   }
 
 
   setupGameElements() {
+    console.log("🎮 Setting up game elements...");
+    
     this.shootRange = 150;
     this.bullets = this.add.group();
 
@@ -192,23 +212,37 @@ export default class MainGameScene extends Phaser.Scene {
     this.otherPlayers = {};
     this.otherPlayerTargets = {};
     this.lastUpdateTime = 0;
+    
+    console.log("🎮 Game elements setup complete");
   }
 
   update(time, delta) {
-    if (!this.player || this.gameState.isGameOver) return;
+    if (!this.player || this.gameState.isGameOver) {
+      return;
+    }
+
+    // Ensure input handler exists
+    if (!this.inputHandler) {
+      console.warn("⚠️ Input handler not initialized");
+      return;
+    }
 
     const { moveX, moveY } = this.inputHandler.getMovementDirection();
     const speed = this.moveSpeed;
 
+    // Reset velocity
     this.player.sprite.body.setVelocity(0);
 
     if (moveX !== 0 || moveY !== 0) {
+      // Apply movement
       this.player.sprite.body.setVelocity(moveX * speed, moveY * speed);
       this.player.sprite.body.velocity.normalize().scale(speed);
 
       // Emit movement to server every 50ms
       if (this.time.now - this.lastUpdateTime > 50) {
-        this.socketManager.emitMovement(this.player.sprite.x, this.player.sprite.y);
+        if (this.socketManager) {
+          this.socketManager.emitMovement(this.player.sprite.x, this.player.sprite.y);
+        }
         this.lastUpdateTime = this.time.now;
       }
 
@@ -238,6 +272,7 @@ export default class MainGameScene extends Phaser.Scene {
       this.player.sprite.body.setVelocity(0);
     }
 
+    // Update all game systems
     this.inputHandler.update(delta);
     this.updateBullets(delta);
     this.interpolateOtherPlayers();
@@ -309,6 +344,8 @@ export default class MainGameScene extends Phaser.Scene {
     if (currentTime - this.lastShotTime < this.shootCooldown) return;
     this.lastShotTime = currentTime;
 
+    console.log("🎮 Player shooting...");
+
     const pointer = this.input.activePointer;
     const angle = Math.atan2(pointer.worldY - this.player.sprite.y, pointer.worldX - this.player.sprite.x);
 
@@ -346,7 +383,10 @@ export default class MainGameScene extends Phaser.Scene {
         return dist(current) < dist(closest) ? current : closest;
       }, hitTargets[0]);
 
-      this.socketManager.emitHit(closestTarget);
+      console.log("🎮 Hit target:", closestTarget);
+      if (this.socketManager) {
+        this.socketManager.emitHit(closestTarget);
+      }
     }
   }
 
@@ -445,9 +485,15 @@ export default class MainGameScene extends Phaser.Scene {
   updateGameTimer() {
     if (!this.isTimerActive || this.gameState.isGameOver) return;
     
-    // Update timer every second
-    if (this.time.now % 1000 < 16) { // Roughly once per second
+    // Update timer every second using a more reliable method
+    const currentTime = this.time.now;
+    if (!this.lastTimerUpdate) {
+      this.lastTimerUpdate = currentTime;
+    }
+    
+    if (currentTime - this.lastTimerUpdate >= 1000) {
       this.gameTimeRemaining--;
+      this.lastTimerUpdate = currentTime;
       
       if (this.timerText) {
         this.timerText.setText(this.formatTime(this.gameTimeRemaining));
@@ -563,16 +609,21 @@ export default class MainGameScene extends Phaser.Scene {
     const screenHeight = this.scale.height - 190;
     const padding = 50; // Keep away from edges
 
+    console.log("🎮 Finding valid spawn position...");
+    console.log("🎮 Screen dimensions:", screenWidth, "x", screenHeight);
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const x = Math.random() * (screenWidth - padding * 2) + padding;
       const y = Math.random() * (screenHeight - padding * 2) + padding;
 
       if (this.isValidSpawnPosition(x, y)) {
+        console.log("🎮 Valid spawn found at attempt", attempt + 1, ":", x, y);
         return { x, y };
       }
     }
 
     // Fallback to center if no valid position found
+    console.log("🎮 No valid spawn found, using center position");
     return { x: screenWidth / 2, y: screenHeight / 2 };
   }
 

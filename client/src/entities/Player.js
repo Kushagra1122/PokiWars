@@ -6,6 +6,7 @@ export default class Player {
         this.health = 100;
         this.score = 0;
         this.character = char;
+        this.char = char; // Store character name for animations
 
         // Create player sprite using character image
         this.sprite = scene.add.image(x, y, char);
@@ -23,6 +24,8 @@ export default class Player {
         this.sprite.setDepth(200);
 
         this.direction = { rotation: 0 };
+        
+        console.log("🎮 Player created with character:", char, "at position:", x, y);
     }
 
     updatePosition(x, y) {
