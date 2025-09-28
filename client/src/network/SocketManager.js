@@ -6,12 +6,7 @@ class SocketManager {
     this.scene = scene;
     this.socket = null;
     // Try multiple connection options for network compatibility
-    this.serverUrls = [
-      `http://${window.location.hostname}:3001`, // Use same hostname as the web app
-      "http://localhost:3001", // Local development
-      "http://127.0.0.1:3001", // Local development alternative
-      "http://172.18.128.1:3001" // Fallback to original IP
-    ];
+    this.serverUrls = ["http://10.52.117.24:3001","http://172.18.240.1:3001"];
     this.currentUrlIndex = 0;
     this.customServerUrl = null; // Allow manual server URL override
   }

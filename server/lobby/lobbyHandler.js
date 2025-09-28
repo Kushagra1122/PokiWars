@@ -10,13 +10,17 @@ function handleLobbyConnection(io, socket) {
     // Create a new lobby
     socket.on('createLobby', (data, callback) => {
         try {
+            console.log(`🏠 Creating lobby request from ${socket.id}:`, data);
+            
             // Validate input data
             if (!data || (!data.name && !data.char)) {
+                console.log(`❌ Invalid lobby creation data from ${socket.id}:`, data);
                 throw new Error('Player information is required');
             }
             
             // Check if player is already in a lobby
             if (currentLobbyId) {
+                console.log(`❌ Player ${socket.id} already in lobby ${currentLobbyId}`);
                 throw new Error('You are already in a lobby');
             }
             
@@ -24,19 +28,32 @@ function handleLobbyConnection(io, socket) {
             const { name, char, settings } = data;
             const playerInfo = { name, char };
             
+            console.log(`👤 Creating lobby for player: ${playerInfo.name || playerInfo.char} (${socket.id})`);
             const lobby = lobbyManager.createLobby(socket.id, playerInfo);
             currentLobbyId = lobby.id;
             
+            console.log(`🏠 Lobby ${lobby.id} created successfully`);
+            
             // Apply settings if provided
             if (settings) {
+                console.log(`⚙️ Applying settings to lobby ${lobby.id}:`, settings);
                 lobby.updateSettings(socket.id, settings);
             }
             
             // Join the socket room for this lobby
             socket.join(`lobby:${lobby.id}`);
+            console.log(`🔗 Player ${socket.id} joined lobby room: lobby:${lobby.id}`);
             
             const lobbyState = lobby.getLobbyState();
-            console.log(`✅ Lobby created: ${lobby.id} by ${playerInfo.name || playerInfo.char}`);
+            console.log(`✅ Lobby created successfully: ${lobby.id} by ${playerInfo.name || playerInfo.char}`);
+            console.log(`📊 Lobby state:`, {
+                id: lobbyState.id,
+                hostId: lobbyState.hostId,
+                playerCount: lobbyState.players.length,
+                maxPlayers: lobbyState.settings.maxPlayers,
+                status: lobbyState.status,
+                isPrivate: lobbyState.settings.isPrivate
+            });
             
             if (callback) {
                 callback({ 
@@ -72,32 +89,44 @@ function handleLobbyConnection(io, socket) {
     // Join existing lobby
     socket.on('joinLobby', (data, callback) => {
         try {
+            console.log(`🚪 Join lobby request from ${socket.id}:`, data);
             const { lobbyId, playerInfo, password } = data;
             
             // Validate input data
             if (!lobbyId) {
+                console.log(`❌ No lobby ID provided by ${socket.id}`);
                 throw new Error('Lobby ID is required');
             }
             
             if (!playerInfo || (!playerInfo.name && !playerInfo.char)) {
+                console.log(`❌ Invalid player info from ${socket.id}:`, playerInfo);
                 throw new Error('Player information is required');
             }
             
             // Check if player is already in a lobby
             if (currentLobbyId && currentLobbyId !== lobbyId) {
+                console.log(`❌ Player ${socket.id} already in lobby ${currentLobbyId}, trying to join ${lobbyId}`);
                 throw new Error('You are already in another lobby');
             }
             
+            console.log(`👤 Player ${playerInfo.name || playerInfo.char} (${socket.id}) attempting to join lobby ${lobbyId}`);
             const playerData = lobbyManager.joinLobby(lobbyId, socket.id, playerInfo, password);
             currentLobbyId = lobbyId;
             
             // Join the socket room for this lobby
             socket.join(`lobby:${lobbyId}`);
+            console.log(`🔗 Player ${socket.id} joined lobby room: lobby:${lobbyId}`);
             
             const lobby = lobbyManager.getLobby(lobbyId);
             const lobbyState = lobby.getLobbyState();
             
-            console.log(`✅ Player ${playerInfo.name || playerInfo.char} joined lobby ${lobbyId}`);
+            console.log(`✅ Player ${playerInfo.name || playerInfo.char} successfully joined lobby ${lobbyId}`);
+            console.log(`📊 Updated lobby state:`, {
+                id: lobbyState.id,
+                playerCount: lobbyState.players.length,
+                maxPlayers: lobbyState.settings.maxPlayers,
+                status: lobbyState.status
+            });
             
             if (callback) {
                 callback({ 
@@ -132,28 +161,47 @@ function handleLobbyConnection(io, socket) {
     socket.on('leaveLobby', (callback) => {
         try {
             if (!currentLobbyId) {
+                console.log(`📤 Player ${socket.id} tried to leave but not in any lobby`);
                 if (callback) {
                     callback({ success: true });
                 }
                 return;
             }
 
+            console.log(`📤 Player ${socket.id} leaving lobby ${currentLobbyId}`);
             const result = lobbyManager.leaveLobby(currentLobbyId, socket.id);
             
             if (result) {
                 // Leave the socket room
                 socket.leave(`lobby:${currentLobbyId}`);
                 
-                console.log(`📤 Player left lobby ${currentLobbyId}`);
+                console.log(`📤 Player ${socket.id} left lobby ${currentLobbyId}`);
 
+                // If lobby was deleted by host, notify all players
+                if (result.lobbyDeleted && result.allPlayerIds) {
+                    console.log(`🗑️ Lobby ${currentLobbyId} was deleted by host - notifying all players`);
+                    
+                    // Notify all players in the lobby that it was deleted
+                    result.allPlayerIds.forEach(playerId => {
+                        const playerSocket = io.sockets.sockets.get(playerId);
+                        if (playerSocket) {
+                            playerSocket.emit('lobbyDeleted', {
+                                reason: 'Host left the lobby',
+                                lobbyId: currentLobbyId
+                            });
+                            console.log(`📤 Notified player ${playerId} about lobby deletion`);
+                        }
+                    });
+                }
                 // If lobby still exists, notify remaining players
-                if (!result.isEmpty) {
+                else if (!result.isEmpty && result.lobby) {
                     const lobbyState = result.lobby.getLobbyState();
                     socket.to(`lobby:${currentLobbyId}`).emit('playerLeft', {
                         playerId: socket.id,
                         newHostId: result.newHostId,
                         lobbyState: lobbyState
                     });
+                    console.log(`📤 Notified remaining players in lobby ${currentLobbyId} about player leaving`);
                 }
 
                 currentLobbyId = null;
@@ -445,21 +493,42 @@ function handleLobbyConnection(io, socket) {
         
         if (currentLobbyId) {
             try {
+                console.log(`📤 Player ${socket.id} disconnected from lobby ${currentLobbyId}`);
                 const result = lobbyManager.leaveLobby(currentLobbyId, socket.id);
                 
-                if (result && !result.isEmpty) {
-                    const lobbyState = result.lobby.getLobbyState();
-                    socket.to(`lobby:${currentLobbyId}`).emit('playerLeft', {
-                        playerId: socket.id,
-                        newHostId: result.newHostId,
-                        lobbyState: lobbyState
-                    });
-                }
+                if (result) {
+                    // If lobby was deleted by host disconnect, notify all players
+                    if (result.lobbyDeleted && result.allPlayerIds) {
+                        console.log(`🗑️ Lobby ${currentLobbyId} was deleted due to host disconnect - notifying all players`);
+                        
+                        // Notify all players in the lobby that it was deleted
+                        result.allPlayerIds.forEach(playerId => {
+                            const playerSocket = io.sockets.sockets.get(playerId);
+                            if (playerSocket) {
+                                playerSocket.emit('lobbyDeleted', {
+                                    reason: 'Host disconnected',
+                                    lobbyId: currentLobbyId
+                                });
+                                console.log(`📤 Notified player ${playerId} about lobby deletion due to disconnect`);
+                            }
+                        });
+                    }
+                    // If lobby still exists, notify remaining players
+                    else if (!result.isEmpty && result.lobby) {
+                        const lobbyState = result.lobby.getLobbyState();
+                        socket.to(`lobby:${currentLobbyId}`).emit('playerLeft', {
+                            playerId: socket.id,
+                            newHostId: result.newHostId,
+                            lobbyState: lobbyState
+                        });
+                        console.log(`📤 Notified remaining players in lobby ${currentLobbyId} about player disconnect`);
+                    }
 
-                // Update lobby list
-                const updatedLobbies = lobbyManager.getPublicLobbies();
-                console.log(`📢 Broadcasting lobby list update after disconnect: ${updatedLobbies.length} lobbies`);
-                io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
+                    // Update lobby list
+                    const updatedLobbies = lobbyManager.getPublicLobbies();
+                    console.log(`📢 Broadcasting lobby list update after disconnect: ${updatedLobbies.length} lobbies`);
+                    io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
+                }
 
             } catch (error) {
                 console.error('❌ Error handling lobby disconnect:', error.message);

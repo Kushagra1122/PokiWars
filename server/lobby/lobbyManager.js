@@ -289,12 +289,45 @@ class LobbyManager {
     leaveLobby(lobbyId, playerId) {
         const lobby = this.lobbies.get(lobbyId);
         if (!lobby) {
+            console.log(`❌ Lobby ${lobbyId} not found for player ${playerId}`);
             return null;
         }
 
+        const wasHost = lobby.players.get(playerId)?.isHost;
         const result = lobby.removePlayer(playerId);
         
-        // If lobby is empty, remove it and clean up mappings
+        console.log(`👤 Player ${playerId} left lobby ${lobbyId} (was host: ${wasHost})`);
+        
+        // If host left, delete the entire lobby and notify all players
+        if (wasHost) {
+            console.log(`👑 Host left lobby ${lobbyId} - deleting lobby and removing all players`);
+            
+            // Get all player IDs before deleting
+            const allPlayerIds = Array.from(lobby.players.keys());
+            console.log(`📤 Notifying ${allPlayerIds.length} players about lobby deletion`);
+            
+            // Clean up mappings
+            const creatorInfo = this.lobbyCreatorMap.get(lobbyId);
+            if (creatorInfo) {
+                this.userLobbyMap.delete(creatorInfo.username);
+                this.lobbyCreatorMap.delete(lobbyId);
+                console.log(`🗑️ Cleaned up mappings for lobby ${lobbyId} (creator: ${creatorInfo.username})`);
+            }
+            
+            // Delete the lobby
+            this.lobbies.delete(lobbyId);
+            console.log(`🗑️ Lobby ${lobbyId} deleted by host`);
+            
+            return { 
+                lobby: null, 
+                wasHost: true, 
+                isEmpty: true, 
+                allPlayerIds: allPlayerIds,
+                lobbyDeleted: true
+            };
+        }
+        
+        // If lobby is empty after non-host left, remove it
         if (result.isEmpty) {
             this.lobbies.delete(lobbyId);
             
@@ -303,7 +336,7 @@ class LobbyManager {
             if (creatorInfo) {
                 this.userLobbyMap.delete(creatorInfo.username);
                 this.lobbyCreatorMap.delete(lobbyId);
-                console.log(`🗑️ Cleaned up mappings for lobby ${lobbyId} (creator: ${creatorInfo.username})`);
+                console.log(`🗑️ Cleaned up mappings for empty lobby ${lobbyId} (creator: ${creatorInfo.username})`);
             }
             
             console.log(`🗑️ Empty lobby ${lobbyId} deleted`);

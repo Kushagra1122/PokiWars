@@ -204,6 +204,17 @@ export default function LobbyRoom() {
     socketManager.socket.on('lobbyListUpdate', (lobbies) => {
       console.log('Lobby list updated:', lobbies);
     });
+
+    // Handle lobby deletion
+    socketManager.socket.on('lobbyDeleted', (data) => {
+      console.log('🗑️ Lobby deleted:', data);
+      setError(`Lobby was deleted: ${data.reason}`);
+      
+      // Redirect to home after a short delay
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
+    });
   };
 
   const cleanupSocketListeners = () => {
@@ -217,6 +228,7 @@ export default function LobbyRoom() {
     socketManager.socket.off('gameStartCountdown');
     socketManager.socket.off('gameStartCancelled');
     socketManager.socket.off('lobbyListUpdate');
+    socketManager.socket.off('lobbyDeleted');
   };
 
   const handleLeaveLobby = () => {
