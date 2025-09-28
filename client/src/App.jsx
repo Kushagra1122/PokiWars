@@ -6,6 +6,7 @@ import NFTTestPage from "./lib/pages/NFTTest";
 import CreateLobby from "./pages/lobby/CreateLobby";
 import LobbyRoom from "./pages/lobby/LobbyRoom";
 import JoinLobby from "./pages/lobby/JoinLobby";
+import JoinLobbyByUrl from "./pages/lobby/JoinLobbyByUrl";
 import LandingPage from "./lib/pages/LandingPage";
 import Dashboard from "./lib/pages/Dashboard";
 import Profile from "./lib/pages/Profile";
@@ -32,6 +33,7 @@ function App() {
             <Route path="/market" element={<Market />} />
             <Route path="/lobby/create" element={<CreateLobby />} />
             <Route path="/lobby/join" element={<JoinLobby />} />
+            <Route path="/lobby/join/:lobbyId" element={<JoinLobbyByUrl />} />
             <Route path="/lobby/room/:lobbyId" element={<LobbyRoom />} />
           </Routes>
         </PokemonProvider>
