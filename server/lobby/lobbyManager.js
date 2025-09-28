@@ -243,13 +243,26 @@ class Lobby {
 class LobbyManager {
     constructor() {
         this.lobbies = new Map();
+        this.userLobbyMap = new Map(); // Maps username to lobby ID
+        this.lobbyCreatorMap = new Map(); // Maps lobby ID to creator info
     }
 
     // Create new lobby
     createLobby(hostId, hostInfo) {
         const lobby = new Lobby(hostId, hostInfo);
         this.lobbies.set(lobby.id, lobby);
-        console.log(`🏠 Lobby ${lobby.id} created by ${hostInfo.name || hostInfo.char}`);
+        
+        // Track lobby creator
+        const creatorName = hostInfo.name || hostInfo.char || 'Anonymous';
+        this.userLobbyMap.set(creatorName, lobby.id);
+        this.lobbyCreatorMap.set(lobby.id, {
+            username: creatorName,
+            hostId: hostId,
+            createdAt: Date.now()
+        });
+        
+        console.log(`🏠 Lobby ${lobby.id} created by ${creatorName}`);
+        console.log(`📊 User lobby map updated: ${creatorName} -> ${lobby.id}`);
         return lobby;
     }
 
@@ -281,9 +294,18 @@ class LobbyManager {
 
         const result = lobby.removePlayer(playerId);
         
-        // If lobby is empty, remove it
+        // If lobby is empty, remove it and clean up mappings
         if (result.isEmpty) {
             this.lobbies.delete(lobbyId);
+            
+            // Clean up creator mappings
+            const creatorInfo = this.lobbyCreatorMap.get(lobbyId);
+            if (creatorInfo) {
+                this.userLobbyMap.delete(creatorInfo.username);
+                this.lobbyCreatorMap.delete(lobbyId);
+                console.log(`🗑️ Cleaned up mappings for lobby ${lobbyId} (creator: ${creatorInfo.username})`);
+            }
+            
             console.log(`🗑️ Empty lobby ${lobbyId} deleted`);
         }
 
@@ -321,13 +343,50 @@ class LobbyManager {
         }
     }
 
+    // Get lobby by creator username
+    getLobbyByCreator(username) {
+        const lobbyId = this.userLobbyMap.get(username);
+        if (lobbyId) {
+            return this.lobbies.get(lobbyId);
+        }
+        return null;
+    }
+
+    // Get all lobbies created by a specific user
+    getUserLobbies(username) {
+        const lobbyId = this.userLobbyMap.get(username);
+        if (lobbyId) {
+            const lobby = this.lobbies.get(lobbyId);
+            return lobby ? [lobby] : [];
+        }
+        return [];
+    }
+
+    // Get creator info for a lobby
+    getLobbyCreator(lobbyId) {
+        return this.lobbyCreatorMap.get(lobbyId);
+    }
+
+    // Get all creator mappings (for debugging)
+    getAllCreatorMappings() {
+        const mappings = {};
+        for (const [username, lobbyId] of this.userLobbyMap.entries()) {
+            mappings[username] = {
+                lobbyId: lobbyId,
+                lobby: this.lobbies.get(lobbyId)?.getPublicInfo() || null
+            };
+        }
+        return mappings;
+    }
+
     // Get lobby statistics
     getStats() {
         const stats = {
             totalLobbies: this.lobbies.size,
             waitingLobbies: 0,
             inGameLobbies: 0,
-            totalPlayers: 0
+            totalPlayers: 0,
+            activeCreators: this.userLobbyMap.size
         };
 
         for (const lobby of this.lobbies.values()) {

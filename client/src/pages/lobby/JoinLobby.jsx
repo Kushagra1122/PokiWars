@@ -19,6 +19,8 @@ export default function JoinLobby() {
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [customServerUrl, setCustomServerUrl] = useState('');
   const [connectionStatus, setConnectionStatus] = useState('');
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [creatorMappings, setCreatorMappings] = useState({});
 
   // Use the main Pokemon as the selected character
   useEffect(() => {
@@ -185,6 +187,37 @@ export default function JoinLobby() {
     }
   };
 
+  const loadCreatorMappings = async () => {
+    try {
+      socketManager.getAllCreatorMappings((response) => {
+        if (response && response.success) {
+          console.log('📊 Creator mappings:', response.mappings);
+          setCreatorMappings(response.mappings);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error loading creator mappings:', error);
+    }
+  };
+
+  const forceRefreshLobbyList = async () => {
+    try {
+      setConnectionStatus('Force refreshing...');
+      socketManager.forceLobbyListRefresh((response) => {
+        if (response && response.success) {
+          console.log('🔄 Force refresh successful:', response.lobbies);
+          setLobbies(response.lobbies || []);
+          setConnectionStatus(`Force refreshed - Found ${response.lobbies?.length || 0} lobbies`);
+        } else {
+          setConnectionStatus('Force refresh failed');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error force refreshing:', error);
+      setConnectionStatus('Force refresh error');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'waiting': return 'text-green-400';
@@ -332,6 +365,12 @@ export default function JoinLobby() {
               >
                 {showServerConfig ? 'Hide' : 'Server Config'}
               </button>
+              <button
+                onClick={() => setShowDebugPanel(!showDebugPanel)}
+                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+              >
+                {showDebugPanel ? 'Hide Debug' : 'Debug'}
+              </button>
             </div>
           </div>
 
@@ -383,6 +422,54 @@ export default function JoinLobby() {
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {showDebugPanel && (
+            <div className="bg-gray-700 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Debug Panel</h3>
+              <div className="space-y-4">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={loadCreatorMappings}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
+                  >
+                    Load Creator Mappings
+                  </button>
+                  <button
+                    onClick={forceRefreshLobbyList}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm"
+                  >
+                    Force Refresh Lobby List
+                  </button>
+                </div>
+                
+                {Object.keys(creatorMappings).length > 0 && (
+                  <div>
+                    <h4 className="text-md font-semibold mb-2">Creator Mappings:</h4>
+                    <div className="bg-gray-600 rounded p-3 max-h-40 overflow-y-auto">
+                      <pre className="text-xs text-gray-300">
+                        {JSON.stringify(creatorMappings, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <h4 className="text-md font-semibold mb-2">Current Lobby List:</h4>
+                  <div className="bg-gray-600 rounded p-3 max-h-40 overflow-y-auto">
+                    <pre className="text-xs text-gray-300">
+                      {JSON.stringify(lobbies.map(l => ({
+                        id: l.id,
+                        host: l.hostName,
+                        status: l.status,
+                        players: `${l.playerCount}/${l.maxPlayers}`,
+                        isPrivate: l.isPrivate
+                      })), null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

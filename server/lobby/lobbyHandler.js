@@ -474,6 +474,74 @@ function handleLobbyConnection(io, socket) {
             }
         }
     });
+
+    // Get lobby by creator username
+    socket.on('getLobbyByCreator', (username, callback) => {
+        try {
+            const lobby = lobbyManager.getLobbyByCreator(username);
+            if (callback) {
+                callback({ 
+                    success: true, 
+                    lobby: lobby ? lobby.getLobbyState() : null 
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error getting lobby by creator:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
+
+    // Get all creator mappings (for debugging)
+    socket.on('getAllCreatorMappings', (callback) => {
+        try {
+            const mappings = lobbyManager.getAllCreatorMappings();
+            if (callback) {
+                callback({ 
+                    success: true, 
+                    mappings: mappings 
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error getting creator mappings:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
+
+    // Force refresh lobby list for all clients
+    socket.on('forceLobbyListRefresh', (callback) => {
+        try {
+            const updatedLobbies = lobbyManager.getPublicLobbies();
+            console.log(`🔄 Force refreshing lobby list: ${updatedLobbies.length} lobbies`);
+            
+            // Broadcast to all clients in lobby-list room
+            io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
+            
+            if (callback) {
+                callback({ 
+                    success: true, 
+                    lobbies: updatedLobbies 
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error force refreshing lobby list:', error.message);
+            if (callback) {
+                callback({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        }
+    });
 }
 
 module.exports = { handleLobbyConnection };

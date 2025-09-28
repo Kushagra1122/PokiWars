@@ -196,6 +196,21 @@ class SocketManager {
     this.socket.emit('getLobbyById', lobbyId, callback);
   }
 
+  getLobbyByCreator(username, callback) {
+    if (!this.socket) return;
+    this.socket.emit('getLobbyByCreator', username, callback);
+  }
+
+  getAllCreatorMappings(callback) {
+    if (!this.socket) return;
+    this.socket.emit('getAllCreatorMappings', callback);
+  }
+
+  forceLobbyListRefresh(callback) {
+    if (!this.socket) return;
+    this.socket.emit('forceLobbyListRefresh', callback);
+  }
+
   setupGameEventListeners() {
     if (!this.scene) return;
     this.socket.on("currentPlayers", (data) => {
