@@ -236,8 +236,13 @@ export default function LobbyRoom() {
 
   const handleStakeSuccess = (result) => {
     console.log('Staking successful:', result);
+    console.log('Adding walletAddress to stakedPlayers:', walletAddress);
     // Add player to staked players set
-    setStakedPlayers(prev => new Set([...prev, walletAddress]));
+    setStakedPlayers(prev => {
+      const newSet = new Set([...prev, walletAddress]);
+      console.log('Updated stakedPlayers:', Array.from(newSet));
+      return newSet;
+    });
     setError(''); // Clear any previous errors
   };
 
@@ -268,13 +273,13 @@ export default function LobbyRoom() {
     }
 
     // Check if all players have staked (only for rated matches)
-    if (lobby.settings.isRated) {
+    if (lobby.settings?.isRated) {
       const allPlayersStaked = lobby.players.every(player => 
         stakedPlayers.has(player.walletAddress) || player.walletAddress === walletAddress
       );
 
       if (!allPlayersStaked) {
-        setError(`All players must stake ${lobby.settings.stake} PKT before starting the game`);
+        setError('All players must stake 10 PKT before starting the game');
         return;
       }
     }
@@ -417,6 +422,8 @@ export default function LobbyRoom() {
                 userAddress={walletAddress}
                 onStakeSuccess={handleStakeSuccess}
                 onStakeError={handleStakeError}
+                lobby={lobby}
+                stakedPlayers={stakedPlayers}
               />
             )}
             
@@ -643,9 +650,9 @@ export default function LobbyRoom() {
               <div className="mt-6 p-4 bg-gray-700 rounded-lg">
                 <h3 className="font-semibold mb-2">Game Rules</h3>
                 <ul className="text-sm text-gray-300 space-y-1">
-                  {lobby.settings.isRated && (
+                  {lobby.settings?.isRated && (
                     <>
-                      <li>• All players must stake {lobby.settings.stake} PKT to join the game</li>
+                      <li>• All players must stake 10 PKT to join the game</li>
                       <li>• Winners get 50-30-20% of the total pool</li>
                     </>
                   )}

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketManager } from '../../network/SocketManager';
 import { usePokemon } from '../../contexts/PokemonContext';
+import { useUser } from '../../contexts/UserContext';
 
 export default function JoinLobby() {
   const navigate = useNavigate();
   const { main } = usePokemon();
-  const [playerName, setPlayerName] = useState('');
-  const [selectedCharacter, setSelectedCharacter] = useState('ALAKAZAM');
+  const { username } = useUser();
+  const [selectedCharacter, setSelectedCharacter] = useState(main ? main.name : 'ALAKAZAM');
   const [lobbies, setLobbies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
@@ -16,7 +17,12 @@ export default function JoinLobby() {
   const [password, setPassword] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
 
-  const characters = ['ALAKAZAM', 'BLASTOISE', 'CHARIZARD'];
+  // Use the main Pokemon as the selected character
+  useEffect(() => {
+    if (main) {
+      setSelectedCharacter(main.name);
+    }
+  }, [main]);
 
   useEffect(() => {
     loadLobbies();
@@ -49,8 +55,8 @@ export default function JoinLobby() {
   };
 
   const handleJoinLobby = (lobby) => {
-    if (!playerName.trim()) {
-      setError('Please enter your name');
+    if (!username) {
+      setError('Please connect your wallet first');
       return;
     }
 
@@ -66,7 +72,7 @@ export default function JoinLobby() {
     setError('');
 
     const playerInfo = {
-      name: playerName.trim(),
+      name: username,
       char: selectedCharacter
     };
 
@@ -228,41 +234,16 @@ export default function JoinLobby() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Player Setup */}
             <div className="lg:col-span-1 space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="Enter your name"
-                  maxLength={20}
-                />
+              <div className="bg-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-2">Player Info</h3>
+                <p className="text-gray-300">Name: <span className="text-white font-semibold">{username || 'Not connected'}</span></p>
+                <p className="text-gray-300">Pokemon: <span className="text-white font-semibold">{selectedCharacter}</span></p>
+                {!username && (
+                  <p className="text-red-400 text-sm mt-2">Please connect your wallet to join a lobby</p>
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Choose Character</label>
-                <div className="space-y-2">
-                  {characters.map((char) => (
-                    <button
-                      key={char}
-                      onClick={() => setSelectedCharacter(char)}
-                      className={`w-full p-3 rounded-lg border-2 transition-all flex items-center space-x-3 ${
-                        selectedCharacter === char
-                          ? 'border-blue-500 bg-blue-600/20'
-                          : 'border-gray-600 bg-gray-700 hover:border-gray-500'
-                      }`}
-                    >
-                      <img
-                        src={`/src/assets/characters/${char}.png`}
-                        alt={char}
-                        className="w-10 h-10"
-                      />
-                      <span>{char}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Character selection removed - using main Pokemon from context */}
 
               <button
                 onClick={loadLobbies}
@@ -328,9 +309,9 @@ export default function JoinLobby() {
 
                       <button
                         onClick={() => handleJoinLobby(lobby)}
-                        disabled={!playerName.trim() || lobby.playerCount >= lobby.maxPlayers || lobby.status !== 'waiting'}
+                        disabled={!username || lobby.playerCount >= lobby.maxPlayers || lobby.status !== 'waiting'}
                         className={`w-full py-2 rounded-lg font-semibold transition-colors ${
-                          !playerName.trim() || lobby.playerCount >= lobby.maxPlayers || lobby.status !== 'waiting'
+                          !username || lobby.playerCount >= lobby.maxPlayers || lobby.status !== 'waiting'
                             ? 'bg-gray-600 cursor-not-allowed text-gray-400'
                             : 'bg-purple-600 hover:bg-purple-700 text-white'
                         }`}

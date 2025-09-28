@@ -29,7 +29,7 @@ export default function TokenBalance({ walletAddress }) {
                 console.log("Block number:", blockNumber);
 
                 // Now this points to your custom testnet RPC
-                const code = await provider.getCode('0xa599dac243deca9b35c57639dc1dfb1f3368e26b');
+                const code = await provider.getCode('0x80e044c711a6904950ff6cbb8f3bdb18877be483');
                 console.log(code);
                 if (code === '0x') {
                     setError('Contract not deployed at the specified address on the connected network');

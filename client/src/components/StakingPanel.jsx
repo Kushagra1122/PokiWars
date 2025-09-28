@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import stakingService from '../lib/services/stakingService';
 
-const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, stakeAmount = 10 }) => {
+const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, lobby, stakedPlayers }) => {
   const [stakingStatus, setStakingStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStaking, setIsStaking] = useState(false);
@@ -15,7 +15,7 @@ const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, stakeAmount =
       checkNetwork();
       loadStakingStatus();
     }
-  }, [userAddress]);
+  }, [userAddress, lobby, stakedPlayers]);
 
   const checkNetwork = async () => {
     try {
@@ -69,13 +69,26 @@ const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, stakeAmount =
     try {
       setIsLoading(true);
       setError('');
-      const status = await stakingService.getStakingStatus(userAddress, stakeAmount);
-      setStakingStatus(status);
+      const status = await stakingService.getStakingStatus(userAddress);
       
-      // If there's an error in the status, show it
-      if (status.error) {
-        setError(status.error);
-      }
+      // Calculate pool balance based on staked players in lobby
+      const poolBalance = calculatePoolBalance();
+      
+      // Check if current user has staked in this lobby
+      const hasStaked = stakedPlayers && stakedPlayers.has(userAddress);
+      
+      console.log('StakingPanel Debug:', {
+        userAddress,
+        stakedPlayers: stakedPlayers ? Array.from(stakedPlayers) : 'undefined',
+        hasStaked,
+        poolBalance
+      });
+      
+      setStakingStatus({
+        ...status,
+        poolBalance: poolBalance,
+        hasStaked: hasStaked
+      });
     } catch (err) {
       console.error('Failed to load staking status:', err);
       setError('Failed to load staking status: ' + err.message);
@@ -96,6 +109,16 @@ const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, stakeAmount =
     }
   };
 
+  const calculatePoolBalance = () => {
+    if (!lobby || !stakedPlayers) return 0;
+    
+    // Count staked players (including current user if they've staked)
+    const stakedCount = stakedPlayers.size;
+    
+    // Pool balance = 10 PKT * number of staked players
+    return stakedCount * 10;
+  };
+
   const handleStake = async () => {
     if (!userAddress) {
       setError('Please connect your wallet first');
@@ -111,13 +134,12 @@ const StakingPanel = ({ userAddress, onStakeSuccess, onStakeError, stakeAmount =
       
       setSuccess(`Successfully staked ${result.amount} PKT! Transaction: ${result.transactionHash}`);
       
-      // Reload status
-      await loadStakingStatus();
-      
       // Notify parent component
       if (onStakeSuccess) {
         onStakeSuccess(result);
       }
+      
+      // The useEffect will handle reloading when stakedPlayers changes
     } catch (err) {
       const errorMessage = err.message || 'Staking failed';
       setError(errorMessage);

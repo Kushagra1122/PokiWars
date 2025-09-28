@@ -44,7 +44,10 @@ export default class MainGameScene extends Phaser.Scene {
   }
 
   create() {
-    const selectedChar = this.registry.get("selectedCharacter") || "ALAKAZAM";
+    // Get the main Pokemon from registry (selected in dashboard) as fallback
+    const mainPokemon = this.registry.get("mainPokemon");
+    const selectedChar = this.registry.get("selectedCharacter") || 
+                        (mainPokemon ? mainPokemon.name : "ALAKAZAM");
     this.gameState = { isGameOver: false, winner: null };
     
     // Get game settings from registry or default values
