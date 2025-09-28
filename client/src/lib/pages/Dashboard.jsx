@@ -24,6 +24,18 @@ function Dashboard() {
   const [hoveredNav, setHoveredNav] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
+
+  const pokimonDashImage = {
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/blastoise-thumbnail.png':'./blast.png',
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/chariz-thumbnail.png':'./chariz.png',
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/venu-thumbnail.png':'./venu.png',
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/geng-thumb.jpg':'./gengar-dash.png',
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/alak-thum.jpg':'./alakazam-dash.png',
+    'https://rcnriqjoemehwjjrmcwt.supabase.co/storage/v1/object/public/poki/images/snor-thumb.jpg':'./Snorlax-dash.png'
+  }
+
+
+
   // Check if wallet is connected, redirect if not
   useEffect(() => {
     if (!walletAddress) {
@@ -190,11 +202,12 @@ function Dashboard() {
         {main && (
           <div className="relative">
             <img
-              src={main.main}
+              // src={main.main}
+              src={pokimonDashImage[main.main]}
               alt="Character"
               className="max-w-md max-h-96 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white/10 rounded-lg"></div>
+            <div className="absolute inset-0 "></div>
           </div>
         )}
       </div>
@@ -247,6 +260,7 @@ function Dashboard() {
                       <div className={`${isSelected ? 'bg-yellow-400/10 rounded-lg p-2' : ''}`}>
                         <PokemonCard
                           imageSrc={pokemon.img}
+                          // imageSrc={pokimonDashImage[pokemon.img]}
                           name={pokemon.name}
                           type={pokemon.type}
                           attack={pokemon.attack}

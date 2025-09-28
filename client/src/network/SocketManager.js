@@ -4,7 +4,7 @@ class SocketManager {
   constructor(scene = null) {
     this.scene = scene;
     this.socket = null;
-    this.serverUrl = "http://localhost:3001";
+    this.serverUrl = "http://172.18.128.1:3001";
   }
 
   // Basic connection without game-specific setup

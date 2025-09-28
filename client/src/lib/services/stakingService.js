@@ -16,11 +16,30 @@ class StakingService {
     this.contract = null;
   }
 
+  // Check if user is on correct network
+  async checkNetwork() {
+    if (!window.ethereum) {
+      throw new Error('MetaMask not installed');
+    }
+
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    const isPolygon = chainId === '0x89'; // Polygon Mainnet chain ID
+    
+    if (!isPolygon) {
+      throw new Error('Please switch to Polygon Mainnet to use staking features');
+    }
+    
+    return true;
+  }
+
   // Initialize the service with wallet connection
   async initialize() {
     if (!window.ethereum) {
       throw new Error('MetaMask not installed');
     }
+
+    // Check network first
+    await this.checkNetwork();
 
     this.provider = new ethers.providers.Web3Provider(window.ethereum);
     this.signer = this.provider.getSigner();
@@ -28,27 +47,40 @@ class StakingService {
   }
 
   // Check if user has enough PKT tokens for staking
-  async checkStakingEligibility(userAddress) {
+  async checkStakingEligibility(userAddress, stakeAmount = STAKE_AMOUNT) {
     try {
       if (!this.contract) {
         await this.initialize();
       }
 
+      // Check network again before making contract calls
+      await this.checkNetwork();
+
       const balance = await this.contract.balanceOf(userAddress);
       const decimals = await this.contract.decimals();
       const balanceFormatted = ethers.utils.formatUnits(balance, decimals);
       
-      const stakeAmountWei = ethers.utils.parseUnits(STAKE_AMOUNT.toString(), decimals);
+      const stakeAmountWei = ethers.utils.parseUnits(stakeAmount.toString(), decimals);
       
       return {
         hasEnoughTokens: balance.gte(stakeAmountWei),
         currentBalance: parseFloat(balanceFormatted),
-        requiredAmount: STAKE_AMOUNT,
-        shortfall: Math.max(0, STAKE_AMOUNT - parseFloat(balanceFormatted))
+        requiredAmount: stakeAmount,
+        shortfall: Math.max(0, stakeAmount - parseFloat(balanceFormatted))
       };
     } catch (error) {
       console.error('Error checking staking eligibility:', error);
-      throw error;
+      
+      // Provide more specific error messages
+      if (error.message.includes('Please switch to Polygon Mainnet')) {
+        throw new Error('Please switch to Polygon Mainnet to check your PKT balance');
+      } else if (error.message.includes('call revert exception')) {
+        throw new Error('Unable to connect to PKT contract. Please ensure you are on Polygon Mainnet and the contract is deployed.');
+      } else if (error.message.includes('MetaMask not installed')) {
+        throw new Error('MetaMask is required for staking features');
+      }
+      
+      throw new Error('Failed to check PKT balance: ' + error.message);
     }
   }
 
@@ -170,7 +202,19 @@ class StakingService {
       };
     } catch (error) {
       console.error('Error getting staking status:', error);
-      throw error;
+      
+      // Provide fallback data when contract calls fail
+      return {
+        hasEnoughTokens: false,
+        currentBalance: 0,
+        requiredAmount: STAKE_AMOUNT,
+        shortfall: STAKE_AMOUNT,
+        poolBalance: 0,
+        hasStaked: false,
+        stakingAddress: STAKING_ADDRESS,
+        stakeAmount: STAKE_AMOUNT,
+        error: error.message
+      };
     }
   }
 }
