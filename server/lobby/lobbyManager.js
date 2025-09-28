@@ -294,11 +294,18 @@ class LobbyManager {
     getPublicLobbies() {
         const publicLobbies = [];
         for (const lobby of this.lobbies.values()) {
-            if (!lobby.settings.isPrivate && lobby.status === 'waiting') {
+            // Show all lobbies that are not in-game (including private ones)
+            if (lobby.status !== 'in-game') {
                 publicLobbies.push(lobby.getPublicInfo());
             }
         }
-        return publicLobbies.sort((a, b) => b.playerCount - a.playerCount);
+        return publicLobbies.sort((a, b) => {
+            // Sort by status first (waiting > starting > finished), then by player count
+            const statusOrder = { 'waiting': 3, 'starting': 2, 'finished': 1 };
+            const statusDiff = (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+            if (statusDiff !== 0) return statusDiff;
+            return b.playerCount - a.playerCount;
+        });
     }
 
     // Clean up old lobbies

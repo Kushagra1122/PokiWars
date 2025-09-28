@@ -46,7 +46,9 @@ function handleLobbyConnection(io, socket) {
             }
 
             // Broadcast lobby list update to all clients in lobby list
-            io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+            const updatedLobbies = lobbyManager.getPublicLobbies();
+            console.log(`📢 Broadcasting lobby list update to lobby-list room: ${updatedLobbies.length} lobbies`);
+            io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
         } catch (error) {
             console.error('❌ Error creating lobby:', error.message);
@@ -103,7 +105,9 @@ function handleLobbyConnection(io, socket) {
             });
 
             // Update lobby list for other clients
-            io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+            const updatedLobbies = lobbyManager.getPublicLobbies();
+            console.log(`📢 Broadcasting lobby list update after join: ${updatedLobbies.length} lobbies`);
+            io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
         } catch (error) {
             console.error('❌ Error joining lobby:', error.message);
@@ -147,7 +151,9 @@ function handleLobbyConnection(io, socket) {
                 currentLobbyId = null;
 
                 // Update lobby list
-                io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+                const updatedLobbies = lobbyManager.getPublicLobbies();
+                console.log(`📢 Broadcasting lobby list update after leave: ${updatedLobbies.length} lobbies`);
+                io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
             }
 
             if (callback) {
@@ -197,7 +203,9 @@ function handleLobbyConnection(io, socket) {
             });
 
             // Update lobby list if visibility changed
-            io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+            const updatedLobbies = lobbyManager.getPublicLobbies();
+            console.log(`📢 Broadcasting lobby list update after settings change: ${updatedLobbies.length} lobbies`);
+            io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
         } catch (error) {
             console.error('❌ Error updating lobby settings:', error.message);
@@ -293,7 +301,9 @@ function handleLobbyConnection(io, socket) {
             io.to(`lobby:${currentLobbyId}`).emit('gameStarting', gameData);
 
             // Remove from public lobby list since game is starting
-            io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+            const updatedLobbies = lobbyManager.getPublicLobbies();
+            console.log(`📢 Broadcasting lobby list update after game start: ${updatedLobbies.length} lobbies`);
+            io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
         } catch (error) {
             console.error('❌ Error starting game:', error.message);
@@ -314,6 +324,16 @@ function handleLobbyConnection(io, socket) {
             // Join lobby list room for updates
             socket.join('lobby-list');
 
+            console.log(`📋 Lobby list requested by ${socket.id}, returning ${lobbies.length} lobbies`);
+            console.log('Available lobbies:', lobbies.map(l => ({ 
+                id: l.id, 
+                host: l.hostName, 
+                status: l.status, 
+                players: `${l.playerCount}/${l.maxPlayers}`,
+                isPrivate: l.isPrivate,
+                map: l.map
+            })));
+
             if (callback) {
                 callback({ 
                     success: true, 
@@ -323,6 +343,7 @@ function handleLobbyConnection(io, socket) {
 
         } catch (error) {
             console.error('❌ Error getting lobby list:', error.message);
+            console.error('Error stack:', error.stack);
             if (callback) {
                 callback({ 
                     success: false, 
@@ -423,7 +444,9 @@ function handleLobbyConnection(io, socket) {
                 }
 
                 // Update lobby list
-                io.to('lobby-list').emit('lobbyListUpdate', lobbyManager.getPublicLobbies());
+                const updatedLobbies = lobbyManager.getPublicLobbies();
+                console.log(`📢 Broadcasting lobby list update after disconnect: ${updatedLobbies.length} lobbies`);
+                io.to('lobby-list').emit('lobbyListUpdate', updatedLobbies);
 
             } catch (error) {
                 console.error('❌ Error handling lobby disconnect:', error.message);

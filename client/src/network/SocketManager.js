@@ -9,30 +9,50 @@ class SocketManager {
 
   // Basic connection without game-specific setup
   async connect() {
-    if (this.socket) {
+    if (this.socket && this.socket.connected) {
+      console.log("Already connected to server:", this.socket.id);
       return this.socket;
     }
+
+    console.log("Attempting to connect to:", this.serverUrl);
 
     return new Promise((resolve, reject) => {
       this.socket = io(this.serverUrl, {
         transports: ["websocket", "polling"],
         timeout: 20000,
         forceNew: false,
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000,
       });
 
       this.socket.on("connect", () => {
-        console.log("Connected to server:", this.socket.id);
+        console.log("✅ Successfully connected to server:", this.socket.id);
         resolve(this.socket);
       });
 
       this.socket.on("connect_error", (error) => {
-        console.error("Connection error:", error);
+        console.error("❌ Connection error:", error);
         reject(error);
+      });
+
+      this.socket.on("disconnect", (reason) => {
+        console.log("🔌 Disconnected from server:", reason);
+      });
+
+      this.socket.on("reconnect", (attemptNumber) => {
+        console.log("🔄 Reconnected to server after", attemptNumber, "attempts");
+      });
+
+      this.socket.on("reconnect_error", (error) => {
+        console.error("❌ Reconnection error:", error);
       });
 
       // Set a timeout for connection
       setTimeout(() => {
         if (!this.socket.connected) {
+          console.error("❌ Connection timeout after 10 seconds");
           reject(new Error("Connection timeout"));
         }
       }, 10000);

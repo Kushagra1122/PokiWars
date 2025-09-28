@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="logs"></div>
+    
+    <script>
+        const status = document.getElementById('status');
+        const logs = document.getElementById('logs');
+        
+        function log(message) {
+            console.log(message);
+            logs.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        log('Testing connection to http://172.18.128.1:3001');
+        
+        const socket = io('http://172.18.128.1:3001', {
+            transports: ['websocket', 'polling'],
+            timeout: 20000,
+            forceNew: false,
+            autoConnect: true,
+            reconnection: true,
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000,
+        });
+        
+        socket.on('connect', () => {
+            log('✅ Connected to server: ' + socket.id);
+            status.textContent = 'Connected!';
+            status.style.color = 'green';
+            
+            // Test lobby list request
+            socket.emit('getLobbyList', (response) => {
+                log('📋 Lobby list response: ' + JSON.stringify(response));
+            });
+        });
+        
+        socket.on('connect_error', (error) => {
+            log('❌ Connection error: ' + error.message);
+            status.textContent = 'Connection failed!';
+            status.style.color = 'red';
+        });
+        
+        socket.on('disconnect', (reason) => {
+            log('🔌 Disconnected: ' + reason);
+            status.textContent = 'Disconnected';
+            status.style.color = 'orange';
+        });
+        
+        socket.on('lobbyListUpdate', (lobbies) => {
+            log('🔄 Lobby list updated: ' + JSON.stringify(lobbies));
+        });
+    </script>
+</body>
+</html>

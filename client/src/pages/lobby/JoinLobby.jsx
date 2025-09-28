@@ -26,31 +26,77 @@ export default function JoinLobby() {
 
   useEffect(() => {
     loadLobbies();
+    
+    // Set up periodic refresh every 10 seconds
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing lobby list...');
+      loadLobbies();
+    }, 10000);
+    
+    // Set up lobby list update listener once
+    const handleLobbyListUpdate = (updatedLobbies) => {
+      console.log('🔄 Lobby list updated:', updatedLobbies);
+      setLobbies(updatedLobbies || []);
+    };
+    
+    socketManager.socket?.on('lobbyListUpdate', handleLobbyListUpdate);
+    
+    // Cleanup interval and listeners on unmount
+    return () => {
+      clearInterval(refreshInterval);
+      socketManager.socket?.off('lobbyListUpdate', handleLobbyListUpdate);
+    };
   }, []);
 
   const loadLobbies = async () => {
     setIsLoading(true);
+    setError('');
+    console.log('🔄 Loading lobbies...');
+    
     try {
+      console.log('🔄 Connecting to server...');
       await socketManager.connect();
+      console.log('✅ Connected to server, requesting lobby list...');
+      
+      // Add timeout for lobby list request
+      const timeoutId = setTimeout(() => {
+        console.error('❌ Lobby list request timeout');
+        setIsLoading(false);
+        setError('Request timeout - please try again');
+        setLobbies([]);
+      }, 10000);
       
       socketManager.getLobbyList((response) => {
+        clearTimeout(timeoutId);
+        console.log('📋 Lobby list response:', response);
         setIsLoading(false);
-        if (response.success) {
-          setLobbies(response.lobbies);
+        
+        if (response && response.success) {
+          console.log('✅ Lobbies loaded:', response.lobbies);
+          console.log('📊 Lobby count:', response.lobbies?.length || 0);
+          if (response.lobbies && response.lobbies.length > 0) {
+            console.log('📋 Available lobbies:', response.lobbies.map(l => ({
+              id: l.id,
+              host: l.hostName,
+              status: l.status,
+              players: `${l.playerCount}/${l.maxPlayers}`,
+              isPrivate: l.isPrivate
+            })));
+          }
+          setLobbies(response.lobbies || []);
+          setError('');
         } else {
-          setError('Failed to load lobbies');
+          console.error('❌ Failed to load lobbies:', response?.error);
+          setError(response?.error || 'Failed to load lobbies');
+          setLobbies([]);
         }
       });
 
-      // Listen for lobby list updates
-      socketManager.socket.on('lobbyListUpdate', (updatedLobbies) => {
-        setLobbies(updatedLobbies);
-      });
-
     } catch (err) {
+      console.error('❌ Connection error:', err);
       setIsLoading(false);
-      setError('Failed to connect to server');
-      console.error('Connection error:', err);
+      setError('Failed to connect to server: ' + err.message);
+      setLobbies([]);
     }
   };
 

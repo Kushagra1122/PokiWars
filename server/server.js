@@ -117,6 +117,8 @@ global.gameIO = io;
 
 // Setup connection handler with lobby support
 io.on("connection", (socket) => {
+    console.log(`🔌 New client connected: ${socket.id} from ${socket.handshake.address}`);
+    
     // Handle game connections
     handleConnection(io, socket);
     
