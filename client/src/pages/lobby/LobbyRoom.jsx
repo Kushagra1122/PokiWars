@@ -272,14 +272,16 @@ export default function LobbyRoom() {
       return;
     }
 
-    // Check if all players have staked
-    const allPlayersStaked = lobby.players.every(player => 
-      stakedPlayers.has(player.walletAddress) || player.walletAddress === walletAddress
-    );
+    // Check if all players have staked (only for rated matches)
+    if (lobby.settings?.isRated) {
+      const allPlayersStaked = lobby.players.every(player => 
+        stakedPlayers.has(player.walletAddress) || player.walletAddress === walletAddress
+      );
 
-    if (!allPlayersStaked) {
-      setError('All players must stake 10 PKT before starting the game');
-      return;
+      if (!allPlayersStaked) {
+        setError('All players must stake 10 PKT before starting the game');
+        return;
+      }
     }
 
     socketManager.startGame((response) => {
@@ -414,8 +416,8 @@ export default function LobbyRoom() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lobby Settings Panel */}
           <div className="lg:col-span-1">
-            {/* Staking Panel */}
-            {walletAddress && (
+            {/* Staking Panel - Only show for rated matches */}
+            {walletAddress && lobby?.settings?.isRated && (
               <StakingPanel
                 userAddress={walletAddress}
                 onStakeSuccess={handleStakeSuccess}
@@ -648,10 +650,14 @@ export default function LobbyRoom() {
               <div className="mt-6 p-4 bg-gray-700 rounded-lg">
                 <h3 className="font-semibold mb-2">Game Rules</h3>
                 <ul className="text-sm text-gray-300 space-y-1">
-                  <li>• All players must stake 10 PKT to join the game</li>
+                  {lobby.settings?.isRated && (
+                    <>
+                      <li>• All players must stake 10 PKT to join the game</li>
+                      <li>• Winners get 50-30-20% of the total pool</li>
+                    </>
+                  )}
                   <li>• All players must be ready to start the game</li>
                   <li>• Only the host can modify lobby settings</li>
-                  <li>• Winners get 50-30-20% of the total pool</li>
                   <li>• Game duration: {lobby.settings.timeLimit} minutes</li>
                 </ul>
               </div>

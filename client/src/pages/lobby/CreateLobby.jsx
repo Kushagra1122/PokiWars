@@ -39,7 +39,8 @@ export default function CreateLobby() {
       await socketManager.connect();
 
       const playerInfo = {
-        name: username
+        name: username,
+        char: main ? main.name : 'ALAKAZAM' // Use selected Pokemon or default
       };
 
       // Create lobby with player info and settings
@@ -54,13 +55,23 @@ export default function CreateLobby() {
         }
       };
 
+      console.log('Creating lobby with data:', lobbyData);
+
+      // Add timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        setIsCreating(false);
+        setError('Lobby creation timed out. Please try again.');
+      }, 10000); // 10 second timeout
+
       socketManager.createLobby(lobbyData, (response) => {
+        clearTimeout(timeout);
+        console.log('Create lobby response:', response);
         setIsCreating(false);
 
-        if (response.success) {
+        if (response && response.success) {
           navigate(`/lobby/room/${response.lobby.id}`);
         } else {
-          setError(response.error || 'Failed to create lobby');
+          setError(response?.error || 'Failed to create lobby');
         }
       });
 
