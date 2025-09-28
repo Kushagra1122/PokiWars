@@ -16,6 +16,9 @@ export default function JoinLobby() {
   const [selectedLobby, setSelectedLobby] = useState(null);
   const [password, setPassword] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
+  const [customServerUrl, setCustomServerUrl] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState('');
 
   // Use the main Pokemon as the selected character
   useEffect(() => {
@@ -51,12 +54,14 @@ export default function JoinLobby() {
   const loadLobbies = async () => {
     setIsLoading(true);
     setError('');
+    setConnectionStatus('Connecting...');
     console.log('🔄 Loading lobbies...');
     
     try {
       console.log('🔄 Connecting to server...');
       await socketManager.connect();
       console.log('✅ Connected to server, requesting lobby list...');
+      setConnectionStatus(`Connected to: ${socketManager.getCurrentServerUrl()}`);
       
       // Add timeout for lobby list request
       const timeoutId = setTimeout(() => {
@@ -64,6 +69,7 @@ export default function JoinLobby() {
         setIsLoading(false);
         setError('Request timeout - please try again');
         setLobbies([]);
+        setConnectionStatus('Connection timeout');
       }, 10000);
       
       socketManager.getLobbyList((response) => {
@@ -85,10 +91,12 @@ export default function JoinLobby() {
           }
           setLobbies(response.lobbies || []);
           setError('');
+          setConnectionStatus(`Connected - Found ${response.lobbies?.length || 0} lobbies`);
         } else {
           console.error('❌ Failed to load lobbies:', response?.error);
           setError(response?.error || 'Failed to load lobbies');
           setLobbies([]);
+          setConnectionStatus('Failed to load lobbies');
         }
       });
 
@@ -97,6 +105,7 @@ export default function JoinLobby() {
       setIsLoading(false);
       setError('Failed to connect to server: ' + err.message);
       setLobbies([]);
+      setConnectionStatus('Connection failed');
     }
   };
 
@@ -139,6 +148,41 @@ export default function JoinLobby() {
         setShowJoinModal(false);
       }
     });
+  };
+
+  const handleCustomServerSubmit = async (e) => {
+    e.preventDefault();
+    if (!customServerUrl.trim()) return;
+
+    setConnectionStatus('Testing custom server...');
+    socketManager.setCustomServerUrl(customServerUrl.trim());
+    
+    // Disconnect current connection and try new one
+    if (socketManager.socket) {
+      socketManager.socket.disconnect();
+    }
+    
+    await loadLobbies();
+    setShowServerConfig(false);
+  };
+
+  const handleServerDiscovery = async () => {
+    setConnectionStatus('Discovering servers...');
+    try {
+      const { discoverGameServers } = await import('../../utils/networkDiscovery');
+      const servers = await discoverGameServers();
+      
+      if (servers.length > 0) {
+        const server = servers[0];
+        const serverUrl = `http://${server.ip}:3001`;
+        setCustomServerUrl(serverUrl);
+        setConnectionStatus(`Found server: ${serverUrl}`);
+      } else {
+        setConnectionStatus('No servers found');
+      }
+    } catch (error) {
+      setConnectionStatus('Discovery failed: ' + error.message);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -269,7 +313,78 @@ export default function JoinLobby() {
         </div>
 
         <div className="bg-gray-800 rounded-lg p-8">
-          <h1 className="text-3xl font-bold mb-8 text-center">Join Lobby</h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">Join Lobby</h1>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-400">
+                {connectionStatus && (
+                  <span className={`px-2 py-1 rounded ${
+                    connectionStatus.includes('Connected') ? 'bg-green-600' : 
+                    connectionStatus.includes('Failed') ? 'bg-red-600' : 'bg-yellow-600'
+                  }`}>
+                    {connectionStatus}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowServerConfig(!showServerConfig)}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+              >
+                {showServerConfig ? 'Hide' : 'Server Config'}
+              </button>
+            </div>
+          </div>
+
+          {showServerConfig && (
+            <div className="bg-gray-700 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Server Configuration</h3>
+              <form onSubmit={handleCustomServerSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Custom Server URL</label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={customServerUrl}
+                      onChange={(e) => setCustomServerUrl(e.target.value)}
+                      placeholder="http://192.168.1.100:3001"
+                      className="flex-1 p-2 bg-gray-600 border border-gray-500 rounded focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleServerDiscovery}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
+                    >
+                      Auto Discover
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Enter the IP address of the machine running the game server (e.g., 192.168.1.100:3001)
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded"
+                  >
+                    Connect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      socketManager.setCustomServerUrl(null);
+                      if (socketManager.socket) {
+                        socketManager.socket.disconnect();
+                      }
+                      loadLobbies();
+                    }}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+                  >
+                    Reset to Auto
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-600 text-white p-3 rounded-lg mb-6">

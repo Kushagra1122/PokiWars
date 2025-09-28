@@ -1,10 +1,36 @@
 import { io } from "socket.io-client";
+import { discoverGameServers, getBestServerUrl, quickConnectionTest } from "../utils/networkDiscovery";
 
 class SocketManager {
   constructor(scene = null) {
     this.scene = scene;
     this.socket = null;
-    this.serverUrl = "http://172.18.128.1:3001";
+    // Try multiple connection options for network compatibility
+    this.serverUrls = [
+      `http://${window.location.hostname}:3001`, // Use same hostname as the web app
+      "http://localhost:3001", // Local development
+      "http://127.0.0.1:3001", // Local development alternative
+      "http://172.18.128.1:3001" // Fallback to original IP
+    ];
+    this.currentUrlIndex = 0;
+    this.customServerUrl = null; // Allow manual server URL override
+  }
+
+  // Set a custom server URL (for manual configuration)
+  setCustomServerUrl(url) {
+    this.customServerUrl = url;
+    console.log(`🔧 Custom server URL set: ${url}`);
+  }
+
+  // Get the current server URL being used
+  getCurrentServerUrl() {
+    if (this.customServerUrl) {
+      return this.customServerUrl;
+    }
+    if (this.currentUrlIndex < this.serverUrls.length) {
+      return this.serverUrls[this.currentUrlIndex];
+    }
+    return null;
   }
 
   // Basic connection without game-specific setup
@@ -14,48 +40,85 @@ class SocketManager {
       return this.socket;
     }
 
-    console.log("Attempting to connect to:", this.serverUrl);
+    return this.tryConnectWithFallback();
+  }
 
+  // Try connecting with fallback URLs
+  async tryConnectWithFallback() {
+    // First try custom server URL if set
+    if (this.customServerUrl) {
+      console.log(`🔄 Attempting to connect to custom server: ${this.customServerUrl}`);
+      try {
+        const socket = await this.connectToUrl(this.customServerUrl);
+        return socket;
+      } catch (error) {
+        console.warn(`❌ Failed to connect to custom server ${this.customServerUrl}:`, error.message);
+      }
+    }
+
+    // Then try the predefined URLs
+    for (let i = this.currentUrlIndex; i < this.serverUrls.length; i++) {
+      const serverUrl = this.serverUrls[i];
+      console.log(`🔄 Attempting to connect to: ${serverUrl} (attempt ${i + 1}/${this.serverUrls.length})`);
+
+      try {
+        const socket = await this.connectToUrl(serverUrl);
+        this.currentUrlIndex = i; // Remember successful URL
+        return socket;
+      } catch (error) {
+        console.warn(`❌ Failed to connect to ${serverUrl}:`, error.message);
+      }
+    }
+
+    // If predefined URLs failed, try network discovery
+    console.log("🔍 Predefined URLs failed, starting network discovery...");
+    try {
+      const discoveredServers = await discoverGameServers();
+      if (discoveredServers.length > 0) {
+        const bestUrl = getBestServerUrl(discoveredServers);
+        console.log(`🎯 Found server via discovery: ${bestUrl}`);
+        const socket = await this.connectToUrl(bestUrl);
+        return socket;
+      }
+    } catch (error) {
+      console.warn("❌ Network discovery failed:", error.message);
+    }
+
+    // All methods failed
+    throw new Error(`Failed to connect to any server. Tried: ${this.serverUrls.join(', ')} and network discovery`);
+  }
+
+  // Connect to a specific URL
+  async connectToUrl(serverUrl) {
     return new Promise((resolve, reject) => {
-      this.socket = io(this.serverUrl, {
+      this.socket = io(serverUrl, {
         transports: ["websocket", "polling"],
-        timeout: 20000,
-        forceNew: false,
+        timeout: 10000,
+        forceNew: true,
         autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 1000,
+        reconnection: false, // We'll handle reconnection manually
       });
 
       this.socket.on("connect", () => {
-        console.log("✅ Successfully connected to server:", this.socket.id);
+        console.log(`✅ Successfully connected to server: ${serverUrl} (${this.socket.id})`);
         resolve(this.socket);
       });
 
       this.socket.on("connect_error", (error) => {
-        console.error("❌ Connection error:", error);
+        console.error(`❌ Connection error to ${serverUrl}:`, error.message);
         reject(error);
       });
 
       this.socket.on("disconnect", (reason) => {
-        console.log("🔌 Disconnected from server:", reason);
-      });
-
-      this.socket.on("reconnect", (attemptNumber) => {
-        console.log("🔄 Reconnected to server after", attemptNumber, "attempts");
-      });
-
-      this.socket.on("reconnect_error", (error) => {
-        console.error("❌ Reconnection error:", error);
+        console.log(`🔌 Disconnected from server ${serverUrl}:`, reason);
       });
 
       // Set a timeout for connection
       setTimeout(() => {
         if (!this.socket.connected) {
-          console.error("❌ Connection timeout after 10 seconds");
-          reject(new Error("Connection timeout"));
+          reject(new Error(`Connection timeout to ${serverUrl}`));
         }
-      }, 10000);
+      }, 8000);
     });
   }
 
