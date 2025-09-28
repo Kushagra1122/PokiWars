@@ -7,6 +7,8 @@ const { Server } = require("socket.io");
 const TokenService = require("./services/tokenService");
 const RewardsService = require("./services/rewardsService");
 const RewardsHandler = require("./handlers/rewardsHandler");
+const BoostService = require("./services/boostService");
+const BoostHandler = require("./handlers/boostHandler");
 
 const app = express();
 const server = http.createServer(app);
@@ -17,10 +19,12 @@ console.log('PRIVATE_KEY exists:', !!process.env.PRIVATE_KEY);
 console.log('PRIVATE_KEY length:', process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.length : 'undefined');
 console.log('PRIVATE_KEY first 10 chars:', process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.substring(0, 10) + '...' : 'undefined');
 
-// Initialize token service
+// Initialize services
 let tokenService;
 let rewardsService;
 let rewardsHandler;
+let boostService;
+let boostHandler;
 
 try {
     tokenService = new TokenService();
@@ -33,6 +37,14 @@ try {
     // Initialize rewards handler
     rewardsHandler = new RewardsHandler(rewardsService);
     console.log('✅ Rewards handler created successfully');
+    
+    // Initialize boost service
+    boostService = new BoostService(tokenService);
+    console.log('✅ Boost service created successfully');
+    
+    // Initialize boost handler
+    boostHandler = new BoostHandler(boostService);
+    console.log('✅ Boost handler created successfully');
     
 } catch (error) {
     console.error('❌ Failed to create services:', error.message);
@@ -54,6 +66,18 @@ try {
         handleX402Flow: async (req, res) => res.status(500).json({
             success: false,
             error: 'Rewards handler not initialized.'
+        })
+    };
+    boostService = {
+        purchaseBoost: async () => ({
+            success: false,
+            error: 'Boost service not initialized. Check PRIVATE_KEY environment variable.'
+        })
+    };
+    boostHandler = {
+        handleBoostX402Flow: async (req, res) => res.status(500).json({
+            success: false,
+            error: 'Boost handler not initialized.'
         })
     };
 }
@@ -183,6 +207,62 @@ app.get('/reward-info', (req, res) => {
     });
 });
 
+// Velocity Boost API Endpoints with x402 Micropayments
+
+// Use boost endpoint with x402 micropayment flow
+app.post('/use-boost', 
+    async (req, res, next) => await boostHandler.handleBoostX402Flow(req, res, next),
+    async (req, res) => await boostHandler.processBoostActivation(req, res)
+);
+
+// Get player boost status
+app.get('/boost-status/:playerId', async (req, res) => {
+    await boostHandler.getPlayerBoostStatus(req, res);
+});
+
+// Alternative POST endpoint for boost status
+app.post('/boost-status', async (req, res) => {
+    await boostHandler.getPlayerBoostStatus(req, res);
+});
+
+// Get boost system statistics
+app.get('/boost-stats', async (req, res) => {
+    await boostHandler.getBoostStats(req, res);
+});
+
+// Cleanup expired boosts (admin endpoint)
+app.post('/cleanup-boosts', async (req, res) => {
+    await boostHandler.cleanupExpiredBoosts(req, res);
+});
+
+// x402 boost info endpoint
+app.get('/boost-info', (req, res) => {
+    res.json({
+        success: true,
+        x402: {
+            protocol: 'boost_micropayments',
+            version: '1.0.0',
+            paymentType: 'per_use',
+            description: 'Velocity boost micropayments for enhanced battle gameplay'
+        },
+        boost: {
+            cost: '10',
+            token: 'PKT',
+            network: 'polygon',
+            effect: '1.4x velocity multiplier',
+            duration: '30 seconds',
+            contract: '0x80e044c711a6904950ff6cbb8f3bdb18877be483'
+        },
+        endpoints: {
+            purchase: '/use-boost',
+            status: '/boost-status/{playerId}',
+            stats: '/boost-stats',
+            info: '/boost-info',
+            cleanup: '/cleanup-boosts'
+        }
+    });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -202,11 +282,16 @@ io.on("connection", (socket) => {
     handleLobbyConnection(io, socket);
 });
 
-// Server monitoring
+// Server monitoring and boost cleanup
 setInterval(() => {
     const playerCount = Object.keys(players).length;
     if (playerCount > 0) {
         console.log(`Active players: ${playerCount}, Game active: ${gameState.isActive}`);
+    }
+    
+    // Clean up expired boosts every 30 seconds
+    if (boostService) {
+        boostService.cleanupExpiredBoosts();
     }
 }, 30000);
 

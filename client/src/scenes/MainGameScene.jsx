@@ -13,11 +13,12 @@ import mapJSON from "../assets/maps/snowMap.json";
 export default class MainGameScene extends Phaser.Scene {
   constructor() {
     super("mainGame");
+    this.baseMoveSpeed = 200;
     this.moveSpeed = 200;
     this.shootCooldown = 250;
     this.lastShotTime = 0;
     this.interpolationFactor = 0.1;
-    
+
     // Timer properties
     this.gameTimer = null;
     this.gameTimeLimit = 0; // Will be set from lobby settings
@@ -25,12 +26,17 @@ export default class MainGameScene extends Phaser.Scene {
     this.timerText = null;
     this.isTimerActive = false;
     this.lastTimerUpdate = 0; // Track last timer update to avoid multiple updates per second
+
+    // Boost properties
+    this.boostMultiplier = 1.0;
+    this.boostEndTime = 0;
+    this.boostStatusText = null;
   }
 
   preload() {
     this.load.image("tiles", tilesImg);
     this.load.tilemapTiledJSON("map", mapJSON);
-    
+
     // Load character images - fix the loading method
     const chars = ["ALAKAZAM", "BLASTOISE", "CHARIZARD", "GENGAR", "SNORLAX", "VENUSAUR"];
     chars.forEach((char) => {
@@ -42,10 +48,10 @@ export default class MainGameScene extends Phaser.Scene {
   create() {
     // Get the main Pokemon from registry (selected in dashboard) as fallback
     const mainPokemon = this.registry.get("mainPokemon");
-    const selectedChar = this.registry.get("selectedCharacter") || 
-                        (mainPokemon ? mainPokemon.name : "ALAKAZAM");
+    const selectedChar = this.registry.get("selectedCharacter") ||
+      (mainPokemon ? mainPokemon.name : "ALAKAZAM");
     this.gameState = { isGameOver: false, winner: null };
-    
+
     // Get game settings from registry or default values
     const gameSettings = this.registry.get("gameSettings") || { timeLimit: 10 };
     this.gameTimeLimit = gameSettings.timeLimit * 60; // Convert minutes to seconds
@@ -113,6 +119,7 @@ export default class MainGameScene extends Phaser.Scene {
     this.gameOverlay = new GameOverlay(this);
     this.createPlayerHealthBar();
     this.createGameTimer();
+    this.createBoostStatusDisplay();
     this.setupGameElements();
 
     // --- MANAGERS ---
@@ -190,6 +197,9 @@ export default class MainGameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (!this.player || this.gameState.isGameOver) return;
+
+    // Update boost status and speed
+    this.updateBoostStatus(time);
 
     const { moveX, moveY } = this.inputHandler.getMovementDirection();
     const speed = this.moveSpeed;
@@ -445,11 +455,11 @@ export default class MainGameScene extends Phaser.Scene {
     // Create timer display in top center of screen
     const centerX = this.scale.width / 2;
     const topY = 30;
-    
+
     // Timer background
     this.timerBg = this.add.rectangle(centerX, topY, 150, 40, 0x000000, 0.7)
       .setDepth(1000);
-    
+
     // Timer text
     this.timerText = this.add.text(centerX, topY, this.formatTime(this.gameTimeRemaining), {
       fontSize: '20px',
@@ -460,17 +470,79 @@ export default class MainGameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(1001);
   }
 
+  createBoostStatusDisplay() {
+    // Create boost status display in top-right of screen
+    const rightX = this.scale.width - 100;
+    const topY = 30;
+
+    // Boost status background (initially hidden)
+    this.boostBg = this.add.rectangle(rightX, topY, 180, 40, 0x6b46c1, 0.8)
+      .setDepth(1000)
+      .setVisible(false);
+
+    // Boost status text
+    this.boostStatusText = this.add.text(rightX, topY, '', {
+      fontSize: '16px',
+      fontFamily: 'Arial',
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5).setDepth(1001).setVisible(false);
+  }
+
+  updateBoostStatus(time) {
+    // Check if boost is still active
+    if (this.boostEndTime > 0 && time > this.boostEndTime) {
+      // Boost expired
+      this.deactivateBoost();
+    }
+
+    // Update boost status display
+    if (this.boostMultiplier > 1.0 && this.boostEndTime > time) {
+      const remainingSeconds = Math.ceil((this.boostEndTime - time) / 1000);
+      this.boostStatusText.setText(`BOOST: ${remainingSeconds}s`);
+      this.boostStatusText.setVisible(true);
+      this.boostBg.setVisible(true);
+    } else {
+      this.boostStatusText.setVisible(false);
+      this.boostBg.setVisible(false);
+    }
+  }
+
+  activateBoost(boostData) {
+    console.log('🚀 Activating velocity boost in game scene:', boostData);
+
+    this.boostMultiplier = boostData.multiplier || 1.4;
+    this.boostEndTime = this.time.now + (boostData.duration || 30000);
+    this.moveSpeed = this.baseMoveSpeed * this.boostMultiplier;
+
+    console.log(`Speed increased from ${this.baseMoveSpeed} to ${this.moveSpeed}`);
+
+    // Show boost activation effect
+    this.effects?.createBoostActivationEffect?.(this.player.sprite.x, this.player.sprite.y);
+  }
+
+  deactivateBoost() {
+    console.log('⏰ Velocity boost expired');
+
+    this.boostMultiplier = 1.0;
+    this.boostEndTime = 0;
+    this.moveSpeed = this.baseMoveSpeed;
+
+    console.log(`Speed returned to normal: ${this.moveSpeed}`);
+  }
+
   updateGameTimer(time) {
     if (!this.isTimerActive || this.gameState.isGameOver) return;
-    
+
     // Update timer every second (use time instead of rough calculation)
     if (time - this.lastTimerUpdate >= 1000) {
       this.lastTimerUpdate = time;
       this.gameTimeRemaining--;
-      
+
       if (this.timerText) {
         this.timerText.setText(this.formatTime(this.gameTimeRemaining));
-        
+
         // Change color as time runs out
         if (this.gameTimeRemaining <= 30) {
           this.timerText.setFill('#ff0000'); // Red for last 30 seconds
@@ -480,7 +552,7 @@ export default class MainGameScene extends Phaser.Scene {
           this.timerText.setFill('#ffffff'); // White normally
         }
       }
-      
+
       // End game when timer reaches 0
       if (this.gameTimeRemaining <= 0) {
         this.handleTimeUp();
@@ -506,12 +578,12 @@ export default class MainGameScene extends Phaser.Scene {
   handleTimeUp() {
     this.stopGameTimer();
     this.gameState.isGameOver = true;
-    
+
     // Determine winner based on highest health or score
     let winnerId = this.socketManager.socket.id;
     let winnerChar = this.player.char;
     let highestScore = this.player.health || 0;
-    
+
     // Check other players
     Object.keys(this.otherPlayers).forEach(id => {
       const player = this.otherPlayers[id];
@@ -521,7 +593,7 @@ export default class MainGameScene extends Phaser.Scene {
         winnerChar = player.char;
       }
     });
-    
+
     this.showGameOver(winnerId, winnerChar);
   }
 
@@ -529,46 +601,46 @@ export default class MainGameScene extends Phaser.Scene {
     // Convert world coordinates to unscaled coordinates for tilemap checking
     const unscaledX = x / this.scaleX;
     const unscaledY = y / this.scaleY;
-    
+
     const tileX = this.map.worldToTileX(unscaledX);
     const tileY = this.map.worldToTileY(unscaledY);
-    
+
     // Check area around spawn position for collision tiles
     const radiusInTiles = Math.ceil(minDistance / Math.min(this.tileWidth, this.tileHeight));
-    
+
     for (let offsetY = -radiusInTiles; offsetY <= radiusInTiles; offsetY++) {
-        for (let offsetX = -radiusInTiles; offsetX <= radiusInTiles; offsetX++) {
-            const checkX = tileX + offsetX;
-            const checkY = tileY + offsetY;
-            
-            // Check if tile coordinates are within map bounds
-            if (checkX < 0 || checkX >= this.map.width || checkY < 0 || checkY >= this.map.height) {
-                continue;
-            }
-            
-            // Check collision layers
-            if (this.treesLayer.hasTileAt(checkX, checkY)) {
-                const tileCenterX = (checkX + 0.5) * this.tileWidth * this.scaleX;
-                const tileCenterY = (checkY + 0.5) * this.tileHeight * this.scaleY;
-                const distance = Math.sqrt(Math.pow(x - tileCenterX, 2) + Math.pow(y - tileCenterY, 2));
-                
-                if (distance < minDistance) {
-                    return false;
-                }
-            }
-            
-            if (this.stonesLayer.hasTileAt(checkX, checkY)) {
-                const tileCenterX = (checkX + 0.5) * this.tileWidth * this.scaleX;
-                const tileCenterY = (checkY + 0.5) * this.tileHeight * this.scaleY;
-                const distance = Math.sqrt(Math.pow(x - tileCenterX, 2) + Math.pow(y - tileCenterY, 2));
-                
-                if (distance < minDistance) {
-                    return false;
-                }
-            }
+      for (let offsetX = -radiusInTiles; offsetX <= radiusInTiles; offsetX++) {
+        const checkX = tileX + offsetX;
+        const checkY = tileY + offsetY;
+
+        // Check if tile coordinates are within map bounds
+        if (checkX < 0 || checkX >= this.map.width || checkY < 0 || checkY >= this.map.height) {
+          continue;
         }
+
+        // Check collision layers
+        if (this.treesLayer.hasTileAt(checkX, checkY)) {
+          const tileCenterX = (checkX + 0.5) * this.tileWidth * this.scaleX;
+          const tileCenterY = (checkY + 0.5) * this.tileHeight * this.scaleY;
+          const distance = Math.sqrt(Math.pow(x - tileCenterX, 2) + Math.pow(y - tileCenterY, 2));
+
+          if (distance < minDistance) {
+            return false;
+          }
+        }
+
+        if (this.stonesLayer.hasTileAt(checkX, checkY)) {
+          const tileCenterX = (checkX + 0.5) * this.tileWidth * this.scaleX;
+          const tileCenterY = (checkY + 0.5) * this.tileHeight * this.scaleY;
+          const distance = Math.sqrt(Math.pow(x - tileCenterX, 2) + Math.pow(y - tileCenterY, 2));
+
+          if (distance < minDistance) {
+            return false;
+          }
+        }
+      }
     }
-    
+
     return true;
   }
 
@@ -593,36 +665,40 @@ export default class MainGameScene extends Phaser.Scene {
   shutdown() {
     // Stop timer
     this.stopGameTimer();
-    
+
     // Clean up timer UI
     this.timerText?.destroy();
     this.timerBg?.destroy();
-    
+
+    // Clean up boost UI
+    this.boostStatusText?.destroy();
+    this.boostBg?.destroy();
+
     // Clean up UI elements
     this.crosshair?.destroy();
     this.aimLine?.destroy();
-    
+
     // Clean up player health bars
-    if (this.player?.healthBar) {
-      this.player.healthBar.destroy();
+    if (this.player?.health) {
+      this.player.health.destroy();
     }
-    
+
     // Clean up other players
     Object.values(this.otherPlayers).forEach((p) => {
       if (p.healthBar) p.healthBar.destroy();
       if (p.sprite) p.sprite.destroy();
     });
-    
+
     // Clean up bullets
     if (this.bullets) {
       this.bullets.clear(true, true);
     }
-    
+
     // Clean up network manager
     if (this.socketManager) {
       this.socketManager.cleanup();
     }
-    
+
     // Clean up input handlers
     if (this.inputHandler) {
       this.input.keyboard.removeAllListeners();

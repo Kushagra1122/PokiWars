@@ -153,5 +153,116 @@ export const tokenApi = {
       console.error('Get reward info error:', error);
       throw error;
     }
+  },
+
+  // Velocity Boost API Functions (x402 Micropayments)
+
+  // Use velocity boost with x402 micropayment
+  async useBoost(playerId, userAddress, paymentId = null, transactionHash = null) {
+    console.log('\n=== CLIENT: Use Velocity Boost ===');
+    console.log('Player ID:', playerId);
+    console.log('User Address:', userAddress);
+    console.log('Payment ID:', paymentId);
+    console.log('Transaction Hash:', transactionHash);
+    
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add payment headers if payment is provided
+      if (paymentId && transactionHash) {
+        headers['X-Payment-Id'] = paymentId;
+        headers['X-Transaction-Hash'] = transactionHash;
+      }
+
+      console.log('Sending boost request...');
+      const response = await fetch(`${API_BASE_URL}/use-boost`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ playerId, userAddress }),
+      });
+
+      console.log('Response received:');
+      console.log('Status:', response.status);
+      console.log('Status Text:', response.statusText);
+
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (response.status === 402) {
+        // x402 Payment Required - need to pay for boost
+        console.log('💳 Payment required for boost');
+        return {
+          success: false,
+          paymentRequired: true,
+          x402: data.x402,
+          paymentRequest: data.x402.paymentRequest,
+          boostDetails: data.x402.boostDetails
+        };
+      }
+
+      if (!response.ok) {
+        console.log('❌ Response not OK, throwing error');
+        throw new Error(data.error || 'Failed to use boost');
+      }
+
+      console.log('✅ Boost activated successfully');
+      console.log('=== END CLIENT: Use Velocity Boost ===\n');
+      return {
+        success: true,
+        boost: data.boost,
+        payment: data.payment,
+        x402: data.x402
+      };
+    } catch (error) {
+      console.error('❌ CLIENT: Use boost error:', error);
+      console.error('Error message:', error.message);
+      console.log('=== END CLIENT: Use Velocity Boost ===\n');
+      throw error;
+    }
+  },
+
+  // Get player's boost status
+  async getBoostStatus(playerId) {
+    console.log('\n=== CLIENT: Get Boost Status ===');
+    console.log('Player ID:', playerId);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/boost-status/${playerId}`);
+      const data = await response.json();
+      
+      console.log('Boost status:', data);
+      console.log('=== END CLIENT: Get Boost Status ===\n');
+      return data;
+    } catch (error) {
+      console.error('❌ CLIENT: Get boost status error:', error);
+      console.log('=== END CLIENT: Get Boost Status ===\n');
+      throw error;
+    }
+  },
+
+  // Get boost system statistics
+  async getBoostStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/boost-stats`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Get boost stats error:', error);
+      throw error;
+    }
+  },
+
+  // Get boost system information
+  async getBoostInfo() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/boost-info`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Get boost info error:', error);
+      throw error;
+    }
   }
 };

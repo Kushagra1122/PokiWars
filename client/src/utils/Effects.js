@@ -110,4 +110,72 @@ export default class Effects {
     createScreenFlash() {
         this.scene.cameras.main.flash(100, 255, 0, 0, false);
     }
+
+    createBoostActivationEffect(x, y) {
+        // Create spectacular boost activation effect
+        console.log('✨ Creating boost activation effect at:', x, y);
+
+        // Purple energy rings
+        for (let i = 0; i < 4; i++) {
+            const ring = this.scene.add.circle(x, y, 10);
+            ring.setStrokeStyle(4, 0x8b5cf6);
+            ring.setFillStyle(0x8b5cf6, 0.1);
+            ring.setDepth(300);
+
+            this.scene.tweens.add({
+                targets: ring,
+                scaleX: 6,
+                scaleY: 6,
+                alpha: 0,
+                duration: 800 + i * 150,
+                delay: i * 100,
+                ease: "Power2.easeOut",
+                onComplete: () => ring.destroy(),
+            });
+        }
+
+        // Lightning particles
+        for (let i = 0; i < 20; i++) {
+            const particle = this.scene.add.circle(x, y, Math.random() * 2 + 1, 0xfbbf24);
+            const angle = (i / 20) * Math.PI * 2;
+            const distance = 60 + Math.random() * 40;
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                alpha: 0,
+                scaleX: 0.1,
+                scaleY: 0.1,
+                duration: 600,
+                ease: "Power3.easeOut",
+                onComplete: () => particle.destroy(),
+            });
+        }
+
+        // Speed lines effect
+        for (let i = 0; i < 8; i++) {
+            const line = this.scene.add.graphics();
+            line.lineStyle(2, 0x00d9ff, 0.8);
+            const angle = (i / 8) * Math.PI * 2;
+            const startX = x + Math.cos(angle) * 20;
+            const startY = y + Math.sin(angle) * 20;
+            const endX = x + Math.cos(angle) * 80;
+            const endY = y + Math.sin(angle) * 80;
+            line.lineBetween(startX, startY, endX, endY);
+            line.setDepth(299);
+
+            this.scene.tweens.add({
+                targets: line,
+                alpha: 0,
+                duration: 400,
+                delay: i * 50,
+                ease: "Power2.easeOut",
+                onComplete: () => line.destroy(),
+            });
+        }
+
+        // Screen flash for boost activation
+        this.scene.cameras.main.flash(150, 139, 92, 246, false);
+    }
 }

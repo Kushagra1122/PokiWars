@@ -4,7 +4,9 @@ import Phaser from "phaser";
 import SelectScene from "../scenes/SelectScene";
 import MainGameScene from "../scenes/MainGameScene";
 import EndGameModal from "./EndGameModal";
+import VelocityBoostCard from "./VelocityBoostCard";
 import { usePokemon } from "../contexts/PokemonContext";
+import { useUser } from "../contexts/UserContext";
 
 export default function Game() {
   const gameRef = useRef(null);
@@ -12,8 +14,11 @@ export default function Game() {
   const [error, setError] = useState(null);
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [gameEndData, setGameEndData] = useState(null);
+  const [currentPlayerId, setCurrentPlayerId] = useState(null);
+  const [gameSocket, setGameSocket] = useState(null);
   const location = useLocation();
   const { pokemonCollection, main } = usePokemon();
+  const { walletAddress } = useUser();
 
   useEffect(() => {
     try {
@@ -89,6 +94,9 @@ export default function Game() {
     game.registry.set('pokemonCollection', pokemonCollection);
     game.registry.set('mainPokemon', main);
 
+    // Store game reference for boost integration
+    setGameSocket(game.scene.getScene('mainGame'));
+
     // Start the appropriate scene based on whether we came from lobby
     if (comingFromLobby) {
       // Set the selected character to the main Pokemon when coming from lobby
@@ -97,6 +105,11 @@ export default function Game() {
       }
       // Skip character selection and go directly to main game
       game.scene.start("mainGame");
+      
+      // Set player ID for boost system
+      if (gameData?.currentPlayerId) {
+        setCurrentPlayerId(gameData.currentPlayerId);
+      }
     }
     // Otherwise SelectScene will start by default
 
@@ -160,6 +173,19 @@ export default function Game() {
     );
   }
 
+  const handleBoostActivated = (boostData) => {
+    console.log('🚀 Boost activated in Game component:', boostData);
+    
+    // Apply boost to the current Phaser scene
+    const game = gameRef.current;
+    if (game && game.scene.isActive('mainGame')) {
+      const mainScene = game.scene.getScene('mainGame');
+      if (mainScene && mainScene.activateBoost) {
+        mainScene.activateBoost(boostData);
+      }
+    }
+  };
+
   return (
     <>
       <div
@@ -171,6 +197,17 @@ export default function Game() {
           id="game-container"
           className="w-full h-full flex items-center justify-center rounded-lg shadow-2xl"
         />
+        
+        {/* Velocity Boost Card - Only show during main game */}
+        {activeScene === "MainGameScene" && currentPlayerId && walletAddress && (
+          <div className="absolute top-4 right-4 z-50">
+            <VelocityBoostCard 
+              playerId={currentPlayerId}
+              onBoostActivated={handleBoostActivated}
+              gameSocket={gameSocket}
+            />
+          </div>
+        )}
       </div>
       
       {/* End Game Modal */}
